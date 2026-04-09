@@ -4,6 +4,8 @@
 
 ### A Hybrid LLM + Numerical Optimization Blackjack System
 
+**[Live Demo](https://blackjack-agent.onrender.com/)**
+
 <br>
 
 **English** | [中文](#中文文档)
@@ -182,7 +184,7 @@ Stage 1: Numerical Optimization          Stage 2: LLM Fine-tuning          Stage
 ### 1. Setup
 
 ```bash
-git clone https://github.com/your-username/blackjack-agent.git
+git clone https://github.com/natechch1/blackjack-agent.git
 cd blackjack-agent
 
 python -m venv venv
@@ -293,6 +295,8 @@ MIT
 # 中文文档
 
 ### 混合 LLM + 数值优化的 21 点 AI 系统
+
+**[在线体验](https://blackjack-agent.onrender.com/)**
 
 <br>
 
@@ -471,7 +475,7 @@ AI 智能体采用**三阶段混合训练流水线**：快速数值优化建立�
 ### 1. 安装
 
 ```bash
-git clone https://github.com/your-username/blackjack-agent.git
+git clone https://github.com/natechch1/blackjack-agent.git
 cd blackjack-agent
 
 python -m venv venv
