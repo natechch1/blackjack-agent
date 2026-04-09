@@ -1,0 +1,13 @@
+#!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# 优先使用项目 venv，否则用系统 Python
+if [ -f "$DIR/venv/bin/python3" ]; then
+    PYTHON="$DIR/venv/bin/python3"
+elif [ -f "$DIR/.venv/bin/python3" ]; then
+    PYTHON="$DIR/.venv/bin/python3"
+else
+    PYTHON="python3"
+fi
+
+exec "$PYTHON" "$DIR/start.py" "$@"

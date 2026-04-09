@@ -1,0 +1,36 @@
+# Virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Trained models (large, regenerable)
+models/hybrid_training/
+models/numerical_training/
+
+# Logs
+*.log
+
+# Distribution
+dist/
+build/
+*.egg-info/

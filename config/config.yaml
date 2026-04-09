@@ -1,0 +1,72 @@
+# LLM Configuration
+llm:
+  model: "deepseek-r1:1.5b"  # 或 "llama3:8b", "qwen2:7b"
+  base_url: "http://localhost:11434"
+  temperature: 0.1
+  max_tokens: 2048
+  timeout: 120
+
+# Blackjack Game Rules
+game:
+  num_decks: 6
+  penetration: 0.75  # 75% 渗透率
+  dealer_hits_soft_17: false  # S17 规则
+  blackjack_pays: 1.5  # 3:2 赔付
+  double_after_split: true
+  double_on_any_two: true
+  surrender_allowed: true
+  insurance_allowed: false  # 默认关闭保险
+  max_splits: 3
+  split_aces_get_one_card: true
+
+# Card Counting
+counting:
+  system: "hi_lo"  # Hi-Lo 算牌系统
+  true_count_divisor: "decks_remaining"
+  betting_correlation: 0.97
+  playing_efficiency: 0.51
+
+# Bankroll Management
+bankroll:
+  initial_bankroll: 10000
+  base_bet: 25
+  kelly_fraction: 0.25  # Kelly 公式保守系数
+  max_bet_multiplier: 8
+  stop_loss_pct: 0.5  # 50% 停损
+  stop_win_pct: 2.0   # 200% 止盈
+
+# Training Configuration
+training:
+  self_play_episodes: 50000
+  optimization_rounds: 10
+  threshold_search_grid: 0.1  # 阈值搜索步长
+  epsilon_greedy: 0.1
+  learning_rate: 0.01
+  batch_size: 1000
+
+# Strategy Overrides
+strategy:
+  use_overrides: true
+  overrides_file: "models/overrides.json"
+  basic_strategy_file: "models/basic_strategy.json"
+  
+# Logging and Data
+logging:
+  level: "INFO"
+  file: "data/logs/blackjack_agent.log"
+  csv_output: "data/game_logs/session_{timestamp}.csv"
+  max_file_size: "50MB"
+  backup_count: 5
+
+# Simulation
+simulation:
+  monte_carlo_iterations: 10000
+  parallel_processes: 4  # M4 Pro 多核优化
+  confidence_level: 0.95
+
+# UI Configuration
+ui:
+  title: "Blackjack AI Agent Dashboard"
+  refresh_interval: 5  # 秒
+  chart_max_points: 1000
+  show_debugging: false

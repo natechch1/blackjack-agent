@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>21点游戏模拟器 - Blackjack Simulator</title>
+    <!-- Vuetify CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.6.14/dist/vuetify.min.css" rel="stylesheet">
+    <!-- Material Design Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <!-- Cyberpunk Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CYBERPUNK BASE ===== */
+        body {
+            background: #050508;
+            font-family: 'Rajdhani', sans-serif;
+            color: #e0e0e0;
+        }
+
+        /* ===== GAME TABLE ===== */
+        .game-table {
+            background: linear-gradient(135deg, #0a0a0f, #0d1117, #0a0a0f);
+            border-radius: 15px;
+            border: 2px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1), inset 0 0 60px rgba(0, 0, 0, 0.5);
+            min-height: calc(100vh - 64px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Scan-line overlay */
+        .game-table::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 240, 255, 0.03) 2px,
+                rgba(0, 240, 255, 0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+            border-radius: 15px;
+        }
+        .game-table > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ===== PLAYING CARDS ===== */
+        .playing-card {
+            width: 80px;
+            height: 110px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 6px;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2), 0 4px 8px rgba(0,0,0,0.5);
+            position: relative;
+            cursor: default;
+            transition: all 0.3s ease;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .playing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.2), 0 8px 16px rgba(0,0,0,0.6);
+            border-color: rgba(0, 240, 255, 0.8);
+        }
+
+        .card-red { color: #ff00aa; }
+        .card-black { color: #00f0ff; }
+
+        .card-back {
+            background: linear-gradient(45deg, #0a0a2e, #1a0a3e, #0a0a2e);
+            color: white;
+            border: 2px solid rgba(139, 92, 246, 0.6);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+            overflow: hidden;
+        }
+
+        .card-back::after {
+            content: '';
+            position: absolute;
+            top: 5px; left: 5px; right: 5px; bottom: 5px;
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 4px;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 5px,
+                rgba(139, 92, 246, 0.1) 5px,
+                rgba(139, 92, 246, 0.1) 10px
+            );
+        }
+
+        .card-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            font-size: 14px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        /* ===== CHIPS ===== */
+        .chip {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 8px;
+            font-weight: bold;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            background: rgba(10, 10, 15, 0.9);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .chip:hover {
+            transform: scale(1.1);
+        }
+
+        .chip-5 {
+            color: #ff00aa;
+            border: 3px solid #ff00aa;
+            box-shadow: 0 0 12px rgba(255,0,170,0.4);
+            text-shadow: 0 0 5px rgba(255,0,170,0.6);
+        }
+        .chip-5:hover { box-shadow: 0 0 20px rgba(255,0,170,0.6); }
+
+        .chip-10 {
+            color: #00f0ff;
+            border: 3px solid #00f0ff;
+            box-shadow: 0 0 12px rgba(0,240,255,0.4);
+            text-shadow: 0 0 5px rgba(0,240,255,0.6);
+        }
+        .chip-10:hover { box-shadow: 0 0 20px rgba(0,240,255,0.6); }
+
+        .chip-25 {
+            color: #39ff14;
+            border: 3px solid #39ff14;
+            box-shadow: 0 0 12px rgba(57,255,20,0.4);
+            text-shadow: 0 0 5px rgba(57,255,20,0.6);
+        }
+        .chip-25:hover { box-shadow: 0 0 20px rgba(57,255,20,0.6); }
+
+        .chip-50 {
+            color: #ff9800;
+            border: 3px solid #ff9800;
+            box-shadow: 0 0 12px rgba(255,152,0,0.4);
+            text-shadow: 0 0 5px rgba(255,152,0,0.6);
+        }
+        .chip-50:hover { box-shadow: 0 0 20px rgba(255,152,0,0.6); }
+
+        .chip-100 {
+            color: #8b5cf6;
+            border: 3px solid #8b5cf6;
+            box-shadow: 0 0 12px rgba(139,92,246,0.4);
+            text-shadow: 0 0 5px rgba(139,92,246,0.6);
+        }
+        .chip-100:hover { box-shadow: 0 0 20px rgba(139,92,246,0.6); }
+
+        /* ===== SECTIONS ===== */
+        .game-section {
+            background: rgba(10, 10, 30, 0.7);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .dealer-section {
+            background: rgba(255, 0, 170, 0.05);
+            border-left: 4px solid #ff00aa;
+            box-shadow: inset 0 0 30px rgba(255, 0, 170, 0.05);
+        }
+
+        .player-section {
+            background: rgba(0, 240, 255, 0.05);
+            border-left: 4px solid #00f0ff;
+            box-shadow: inset 0 0 30px rgba(0, 240, 255, 0.05);
+        }
+
+        .ai-panel {
+            background: linear-gradient(135deg, rgba(57, 255, 20, 0.08), rgba(0, 240, 255, 0.05));
+            border-left: 4px solid #39ff14;
+            border: 1px solid rgba(57, 255, 20, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.1);
+        }
+
+        /* ===== ANIMATIONS ===== */
+        .card-deal-animation {
+            animation: cardDeal 0.6s ease-out;
+        }
+
+        @keyframes cardDeal {
+            from {
+                transform: translateY(-100px) scale(0.8) rotate(-20deg);
+                opacity: 0;
+            }
+            50% {
+                transform: translateY(-20px) scale(1.1) rotate(-5deg);
+                opacity: 0.8;
+            }
+            to {
+                transform: translateY(0) scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .result-celebration {
+            animation: celebration 1.5s ease-in-out;
+        }
+
+        @keyframes celebration {
+            0% { transform: scale(1); filter: brightness(1); }
+            25% { transform: scale(1.1); filter: brightness(1.2); }
+            50% { transform: scale(1.05); filter: brightness(1.1); }
+            75% { transform: scale(1.1); filter: brightness(1.2); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        @keyframes neonPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6), 0 0 40px rgba(0, 240, 255, 0.2); }
+        }
+
+        @keyframes neonFlicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                text-shadow: 0 0 7px rgba(0,240,255,0.6), 0 0 20px rgba(0,240,255,0.4), 0 0 40px rgba(0,240,255,0.2);
+            }
+            20%, 24%, 55% {
+                text-shadow: none;
+            }
+        }
+
+        .stats-card {
+            background: rgba(10, 10, 20, 0.95);
+            border-radius: 10px;
+            color: white;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+        }
+
+        /* ===== NEON UTILITY CLASSES ===== */
+        .neon-cyan { color: #00f0ff !important; text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+        .neon-magenta { color: #ff00aa !important; text-shadow: 0 0 10px rgba(255,0,170,0.5); }
+        .neon-green { color: #39ff14 !important; text-shadow: 0 0 10px rgba(57,255,20,0.5); }
+        .neon-purple { color: #8b5cf6 !important; text-shadow: 0 0 10px rgba(139,92,246,0.5); }
+        .neon-red { color: #ff003c !important; text-shadow: 0 0 10px rgba(255,0,60,0.5); }
+        .neon-orange { color: #ff9800 !important; text-shadow: 0 0 10px rgba(255,152,0,0.5); }
+
+        .neon-flicker {
+            animation: neonFlicker 3s infinite;
+        }
+
+        /* ===== TYPOGRAPHY ===== */
+        .text-h3, .text-h4, .text-h5, .display-1, .v-toolbar__title {
+            font-family: 'Orbitron', sans-serif !important;
+            letter-spacing: 1px;
+        }
+        .text-body-1, .text-subtitle1, .text-subtitle2, .text-caption {
+            font-family: 'Rajdhani', sans-serif !important;
+        }
+
+        /* ===== VUETIFY COMPONENT OVERRIDES ===== */
+        .v-card {
+            background-color: rgba(13, 17, 23, 0.95) !important;
+            color: #e0e0e0 !important;
+            border: 1px solid rgba(0, 240, 255, 0.1);
+        }
+        .v-card__title {
+            font-family: 'Orbitron', sans-serif !important;
+        }
+
+        .v-dialog {
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.15);
+        }
+
+        .v-btn:not(.v-btn--icon):not(.v-btn--fab) {
+            font-family: 'Rajdhani', sans-serif !important;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .v-data-table {
+            background: transparent !important;
+            color: #e0e0e0 !important;
+        }
+        .v-data-table th {
+            color: #00f0ff !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-size: 11px !important;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.3) !important;
+        }
+        .v-data-table td {
+            border-bottom: 1px solid rgba(0, 240, 255, 0.1) !important;
+        }
+
+        .v-expansion-panel {
+            background: rgba(10, 10, 30, 0.8) !important;
+            color: #e0e0e0 !important;
+        }
+        .v-expansion-panel-header {
+            color: #e0e0e0 !important;
+        }
+
+        .v-slider__track-background { background: rgba(0, 240, 255, 0.2) !important; }
+        .v-slider__track-fill { background: #00f0ff !important; }
+        .v-slider__thumb { background: #00f0ff !important; }
+
+        .v-chip.v-chip--outlined {
+            border-color: rgba(0, 240, 255, 0.5) !important;
+        }
+
+        .v-progress-linear {
+            border-radius: 4px;
+            overflow: visible;
+        }
+        .v-progress-linear__determinate {
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .v-snack__wrapper {
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .v-simple-table {
+            background: transparent !important;
+        }
+
+        /* Stat card color overrides for dark theme */
+        .v-card.blue.lighten-4, .v-card.green.lighten-4,
+        .v-card.red.lighten-4, .v-card.orange.lighten-4,
+        .v-card.blue.lighten-5, .v-card.green.lighten-5,
+        .v-card.orange.lighten-5, .v-card.indigo.lighten-5 {
+            background: rgba(10, 10, 30, 0.8) !important;
+            border: 1px solid rgba(0, 240, 255, 0.2) !important;
+        }
+
+        /* Text field and select dark styling */
+        .v-text-field--outlined .v-input__slot {
+            border-color: rgba(0, 240, 255, 0.3) !important;
+        }
+
+        .v-list {
+            background: rgba(13, 17, 23, 0.98) !important;
+        }
+
+        .v-menu__content {
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <v-app>
+            <!-- 游戏设置对话框 / Game Setup Dialog -->
+            <v-dialog v-model="showSetup" max-width="600" persistent>
+                <v-card>
+                    <v-card-title class="neon-cyan" style="background: rgba(0,240,255,0.05); border-bottom: 1px solid rgba(0,240,255,0.3);">
+                        <v-icon class="mr-3" color="#00f0ff" large>mdi-cards-playing-outline</v-icon>
+                        {{ t('21点游戏设置', 'Blackjack Setup') }}
+                        <v-spacer></v-spacer>
+                        <v-btn icon @click="toggleLang" title="Switch Language">
+                            <span style="font-size:13px;font-weight:bold;color:#00f0ff">{{ lang === 'zh' ? 'EN' : '中文' }}</span>
+                        </v-btn>
+                    </v-card-title>
+                    <v-card-text class="pa-6">
+                        <v-row>
+                            <v-col cols="12">
+                                <div class="d-flex align-center mb-4">
+                                    <v-icon class="mr-2" color="#8b5cf6">mdi-translate</v-icon>
+                                    <span class="text-subtitle1 mr-4">{{ t('语言', 'Language') }}</span>
+                                    <v-btn-toggle v-model="lang" mandatory dense>
+                                        <v-btn value="zh" small>中文</v-btn>
+                                        <v-btn value="en" small>English</v-btn>
+                                    </v-btn-toggle>
+                                </div>
+                            </v-col>
+                            <v-col cols="12">
+                                <v-select
+                                    v-model="gameSettings.numDecks"
+                                    :items="deckOptions"
+                                    :label="t('选择牌副数', 'Number of Decks')"
+                                    prepend-icon="mdi-cards"
+                                    outlined
+                                    :hint="t('更多牌副降低算牌效果', 'More decks reduce card counting effectiveness')"
+                                    persistent-hint
+                                ></v-select>
+                            </v-col>
+                            <v-col cols="12">
+                                <v-text-field
+                                    v-model.number="gameSettings.initialChips"
+                                    :label="t('初始筹码', 'Starting Chips')"
+                                    type="number"
+                                    prepend-icon="mdi-cash-multiple"
+                                    outlined
+                                    :rules="[v => v > 0 || t('筹码必须大于0', 'Chips must be greater than 0')]"
+                                    suffix="$"
+                                ></v-text-field>
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                    <v-card-actions class="px-6 pb-6">
+                        <v-spacer></v-spacer>
+                        <v-btn color="primary" large @click="startGame" :disabled="!isValidSetup" :loading="starting">
+                            <v-icon left>mdi-play</v-icon>
+                            {{ t('开始游戏', 'Start Game') }}
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+
+            <!-- 主游戏界面 / Main Game Interface -->
+            <v-container fluid class="pa-0" v-if="!showSetup">
+                <!-- 顶部状态栏 -->
+                <v-app-bar dark style="background: linear-gradient(90deg, rgba(10,10,15,0.95), rgba(13,17,23,0.95)) !important; border-bottom: 1px solid rgba(0,240,255,0.3); box-shadow: 0 0 20px rgba(0,240,255,0.1);">
+                    <v-icon class="mr-3" large>mdi-cards-playing-outline</v-icon>
+                    <v-toolbar-title class="text-h5">{{ t('21点游戏模拟器', 'Blackjack Simulator') }}</v-toolbar-title>
+                    <v-spacer></v-spacer>
+
+                    <v-chip class="mr-3" color="success" large outlined>
+                        <v-icon left>mdi-cash</v-icon>
+                        ${{ playerChips }}
+                    </v-chip>
+
+                    <v-chip class="mr-3" color="warning" large outlined v-if="currentBet > 0">
+                        <v-icon left>mdi-target</v-icon>
+                        {{ t('下注', 'Bet') }}: ${{ currentBet }}
+                    </v-chip>
+
+                    <v-chip class="mr-3" color="info" large outlined v-if="gameHistory.length > 0">
+                        <v-icon left>mdi-chart-line</v-icon>
+                        {{ winRate }}% {{ t('胜率', 'Win Rate') }}
+                    </v-chip>
+
+                    <v-btn icon @click="toggleLang" class="mr-1">
+                        <span style="font-size:12px;font-weight:bold;color:#00f0ff">{{ lang === 'zh' ? 'EN' : '中文' }}</span>
+                    </v-btn>
+
+                    <v-menu bottom left>
+                        <template v-slot:activator="{ on, attrs }">
+                            <v-btn icon v-bind="attrs" v-on="on">
+                                <v-icon>mdi-dots-vertical</v-icon>
+                            </v-btn>
+                        </template>
+                        <v-list>
+                            <v-list-item @click="showStats = true">
+                                <v-list-item-icon><v-icon>mdi-chart-box</v-icon></v-list-item-icon>
+                                <v-list-item-content><v-list-item-title>{{ t('游戏统计', 'Statistics') }}</v-list-item-title></v-list-item-content>
+                            </v-list-item>
+                            <v-list-item @click="resetGame">
+                                <v-list-item-icon><v-icon>mdi-restart</v-icon></v-list-item-icon>
+                                <v-list-item-content><v-list-item-title>{{ t('重新开始', 'Restart') }}</v-list-item-title></v-list-item-content>
+                            </v-list-item>
+                        </v-list>
+                    </v-menu>
+                </v-app-bar>
+
+                <!-- 游戏桌面 -->
+                <v-container fluid class="game-table pa-4">
+                    <!-- 庄家区域 -->
+                    <v-row>
+                        <v-col cols="12">
+                            <v-card class="game-section dealer-section pa-6 text-center">
+                                <div class="mb-4">
+                                    <h2 class="neon-magenta display-1 neon-flicker">
+                                        <v-icon large color="#ff00aa" class="mr-3">mdi-account-tie</v-icon>
+                                        {{ t('庄家', 'Dealer') }}
+                                    </h2>
+                                    <v-chip v-if="currentHand && showDealerTotal"
+                                           color="rgba(255,0,170,0.15)" text-color="#ff00aa" large class="mt-2">
+                                        {{ t('点数', 'Score') }}: {{ dealerTotal }}
+                                    </v-chip>
+                                    <v-chip v-else-if="currentHand"
+                                           color="rgba(255,0,170,0.15)" text-color="#ff00aa" large class="mt-2">
+                                        {{ t('点数', 'Score') }}: ?
+                                    </v-chip>
+                                </div>
+                                <div class="dealer-cards">
+                                    <div v-if="!currentHand" class="playing-card card-back">
+                                        <div class="card-content">
+                                            <v-icon large>mdi-cards</v-icon>
+                                        </div>
+                                    </div>
+                                    <div v-else>
+                                        <div v-for="(card, index) in dealerCardsDisplay"
+                                             :key="'dealer-' + index"
+                                             :class="['playing-card', card.color, 'card-deal-animation']"
+                                             :style="{ animationDelay: (index * 0.3) + 's' }">
+                                            <div class="card-content">{{ card.display }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- 玩家区域 -->
+                    <v-row class="mt-4">
+                        <v-col cols="12">
+                            <v-card class="game-section player-section pa-6 text-center">
+                                <div class="mb-4">
+                                    <h2 class="neon-cyan display-1">
+                                        <v-icon large color="#00f0ff" class="mr-3">mdi-account</v-icon>
+                                        {{ t('玩家', 'Player') }}
+                                    </h2>
+                                    <v-chip v-if="currentHand" color="rgba(0,240,255,0.15)" text-color="#00f0ff" large class="mt-2">
+                                        {{ t('点数', 'Score') }}: {{ playerTotal }}
+                                    </v-chip>
+                                </div>
+                                <div class="player-cards">
+                                    <div v-if="!currentHand" class="playing-card card-back">
+                                        <div class="card-content">
+                                            <v-icon large>mdi-cards</v-icon>
+                                        </div>
+                                    </div>
+                                    <div v-else>
+                                        <div v-for="(card, index) in playerCardsDisplay"
+                                             :key="'player-' + index"
+                                             :class="['playing-card', card.color, 'card-deal-animation']"
+                                             :style="{ animationDelay: (index * 0.3 + 0.5) + 's' }">
+                                            <div class="card-content">{{ card.display }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- 下注和控制区域 -->
+                    <v-row class="mt-4" v-if="!currentHand">
+                        <v-col cols="12" md="6">
+                            <!-- 下注区域 -->
+                            <v-card class="game-section pa-6">
+                                <v-card-title class="neon-cyan">
+                                    <v-icon class="mr-2" color="#00f0ff" large>mdi-cash-multiple</v-icon>
+                                    <span class="text-h5">{{ t('下注选择', 'Place Bet') }}</span>
+                                </v-card-title>
+                                <v-card-text>
+                                    <v-slider
+                                        v-model="currentBet"
+                                        :min="Math.min(5, playerChips)"
+                                        :max="Math.min(playerChips, 500)"
+                                        :step="5"
+                                        thumb-label="always"
+                                        color="primary"
+                                        track-color="grey"
+                                        :disabled="playerChips <= 0"
+                                        class="mt-6"
+                                    ></v-slider>
+                                    <div class="text-center mt-4">
+                                        <div class="chip chip-5" @click="setBet(5)" v-if="playerChips >= 5">$5</div>
+                                        <div class="chip chip-10" @click="setBet(10)" v-if="playerChips >= 10">$10</div>
+                                        <div class="chip chip-25" @click="setBet(25)" v-if="playerChips >= 25">$25</div>
+                                        <div class="chip chip-50" @click="setBet(50)" v-if="playerChips >= 50">$50</div>
+                                        <div class="chip chip-100" @click="setBet(100)" v-if="playerChips >= 100">$100</div>
+                                    </div>
+                                </v-card-text>
+                                <v-card-actions class="justify-center">
+                                    <v-btn
+                                        color="primary"
+                                        x-large
+                                        @click="dealNewHand"
+                                        :disabled="playerChips < currentBet || currentBet <= 0"
+                                        :loading="dealing"
+                                        class="px-8"
+                                    >
+                                        <v-icon left large>mdi-cards-playing-outline</v-icon>
+                                        {{ t('发牌', 'Deal') }} (${{ currentBet }})
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+
+                        <v-col cols="12" md="6">
+                            <!-- 游戏统计 -->
+                            <v-card class="stats-card pa-6" style="height: 100%;">
+                                <v-card-title class="neon-cyan">
+                                    <v-icon class="mr-2" color="#00f0ff" large>mdi-chart-box</v-icon>
+                                    <span class="text-h5">{{ t('游戏统计', 'Game Stats') }}</span>
+                                </v-card-title>
+                                <v-card-text class="neon-cyan">
+                                    <v-row>
+                                        <v-col cols="6" class="text-center">
+                                            <div class="text-h3">{{ gameHistory.length }}</div>
+                                            <div class="text-subtitle1">{{ t('总局数', 'Total Games') }}</div>
+                                        </v-col>
+                                        <v-col cols="6" class="text-center">
+                                            <div :class="['text-h3', totalProfit >= 0 ? 'neon-green' : 'neon-red']">
+                                                {{ totalProfit >= 0 ? '+' : '' }}${{ totalProfit }}
+                                            </div>
+                                            <div class="text-subtitle1">{{ t('总盈亏', 'Total P/L') }}</div>
+                                        </v-col>
+                                        <v-col cols="6" class="text-center">
+                                            <div class="text-h3 neon-orange">{{ winRate }}%</div>
+                                            <div class="text-subtitle1">{{ t('胜率', 'Win Rate') }}</div>
+                                        </v-col>
+                                        <v-col cols="6" class="text-center">
+                                            <div class="text-h3 neon-purple">
+                                                ${{ gameHistory.length > 0 ? (totalProfit / gameHistory.length).toFixed(1) : '0.0' }}
+                                            </div>
+                                            <div class="text-subtitle1">{{ t('平均每局', 'Avg/Game') }}</div>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- 游戏中控制按钮 -->
+                    <v-row v-if="currentHand && !gameOver" class="mt-4">
+                        <v-col cols="12">
+                            <v-card class="game-section pa-6">
+                                <v-card-title class="justify-center neon-cyan">
+                                    <v-icon class="mr-3" color="#00f0ff" large>mdi-gesture-tap</v-icon>
+                                    <span class="text-h5">{{ t('选择行动', 'Choose Action') }}</span>
+                                </v-card-title>
+                                <v-card-actions class="justify-center flex-wrap">
+                                    <v-btn
+                                        color="success"
+                                        x-large
+                                        class="ma-2"
+                                        @click="playerHit"
+                                        :loading="processing"
+                                    >
+                                        <v-icon left large>mdi-plus</v-icon>
+                                        {{ t('要牌 (Hit)', 'Hit') }}
+                                    </v-btn>
+
+                                    <v-btn
+                                        color="error"
+                                        x-large
+                                        class="ma-2"
+                                        @click="playerStand"
+                                        :loading="processing"
+                                    >
+                                        <v-icon left large>mdi-hand-back-left</v-icon>
+                                        {{ t('停牌 (Stand)', 'Stand') }}
+                                    </v-btn>
+
+                                    <v-btn
+                                        color="warning"
+                                        x-large
+                                        class="ma-2"
+                                        @click="playerDouble"
+                                        :disabled="!canDouble"
+                                        :loading="processing"
+                                    >
+                                        <v-icon left large>mdi-numeric-2-box</v-icon>
+                                        {{ t('加倍 (Double)', 'Double') }}
+                                    </v-btn>
+
+                                    <v-btn
+                                        color="info"
+                                        x-large
+                                        class="ma-2"
+                                        @click="getAIAdvice"
+                                        :loading="aiThinking"
+                                    >
+                                        <v-icon left large>mdi-robot</v-icon>
+                                        {{ t('AI建议', 'AI Advice') }}
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- AI建议面板 -->
+                    <v-row v-if="aiDecision" class="mt-4">
+                        <v-col cols="12">
+                            <v-card class="ai-panel pa-6">
+                                <v-card-title>
+                                    <v-icon class="mr-3" color="success" large>mdi-robot</v-icon>
+                                    <span class="text-h5">{{ t('AI助手建议', 'AI Recommendation') }}</span>
+                                    <v-spacer></v-spacer>
+                                    <v-chip :color="confidenceColor" large>
+                                        {{ t('信心度', 'Confidence') }}: {{ aiDecision.confidence }}
+                                    </v-chip>
+                                </v-card-title>
+                                <v-card-text>
+                                    <v-row align="center">
+                                        <v-col cols="12" md="4" class="text-center">
+                                            <v-chip color="primary" x-large>
+                                                <v-icon left large>mdi-target</v-icon>
+                                                {{ aiDecision.action }}
+                                            </v-chip>
+                                        </v-col>
+                                        <v-col cols="12" md="8">
+                                            <div class="text-h6 mb-2">{{ t('分析依据：', 'Analysis:') }}</div>
+                                            <div class="text-body-1">{{ aiDecision.reasoning }}</div>
+                                        </v-col>
+                                    </v-row>
+                                </v-card-text>
+                                <v-card-actions>
+                                    <v-btn color="success" large @click="followAIAdvice">
+                                        <v-icon left>mdi-check</v-icon>
+                                        {{ t('采用建议', 'Follow Advice') }}
+                                    </v-btn>
+                                    <v-btn text large @click="aiDecision = null">
+                                        <v-icon left>mdi-close</v-icon>
+                                        {{ t('忽略', 'Dismiss') }}
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+
+                    <!-- 结果显示 -->
+                    <v-row v-if="gameOver" class="mt-4">
+                        <v-col cols="12">
+                            <v-card :class="['pa-8', 'text-center', 'result-celebration', resultColor]">
+                                <v-card-title class="white--text justify-center">
+                                    <v-icon x-large class="mr-4" color="white">{{ resultIcon }}</v-icon>
+                                    <span class="display-1">{{ resultText }}</span>
+                                </v-card-title>
+                                <v-card-subtitle class="white--text">
+                                    <div class="text-h4 mt-4">
+                                        {{ t('盈亏', 'P/L') }}: <span class="white--text">
+                                            {{ gameResult.profit >= 0 ? '+' : '' }}${{ gameResult.profit }}
+                                        </span>
+                                    </div>
+                                </v-card-subtitle>
+                                <v-card-actions class="justify-center mt-6">
+                                    <v-btn color="#00f0ff" x-large dark @click="nextHand" class="black--text">
+                                        <v-icon left large>mdi-play</v-icon>
+                                        {{ t('下一局', 'Next Hand') }}
+                                    </v-btn>
+                                </v-card-actions>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                </v-container>
+            </v-container>
+
+            <!-- 统计对话框 -->
+            <v-dialog v-model="showStats" max-width="800">
+                <v-card>
+                    <v-card-title class="neon-cyan">
+                        <v-icon class="mr-3" color="#00f0ff">mdi-chart-box</v-icon>
+                        {{ t('详细统计报告', 'Detailed Statistics') }}
+                    </v-card-title>
+                    <v-card-text class="pa-6" v-if="gameHistory.length > 0">
+                        <v-row>
+                            <v-col cols="6" md="3" class="text-center">
+                                <v-card class="pa-4" style="background: rgba(0,240,255,0.08) !important; border: 1px solid rgba(0,240,255,0.2);">
+                                    <div class="text-h4 neon-cyan">{{ gameHistory.length }}</div>
+                                    <div class="text-subtitle1">{{ t('总局数', 'Total Games') }}</div>
+                                </v-card>
+                            </v-col>
+                            <v-col cols="6" md="3" class="text-center">
+                                <v-card class="pa-4" style="background: rgba(57,255,20,0.08) !important; border: 1px solid rgba(57,255,20,0.2);">
+                                    <div class="text-h4 neon-green">{{ wins }}</div>
+                                    <div class="text-subtitle1">{{ t('获胜', 'Wins') }}</div>
+                                </v-card>
+                            </v-col>
+                            <v-col cols="6" md="3" class="text-center">
+                                <v-card class="pa-4" style="background: rgba(255,0,170,0.08) !important; border: 1px solid rgba(255,0,170,0.2);">
+                                    <div class="text-h4 neon-magenta">{{ losses }}</div>
+                                    <div class="text-subtitle1">{{ t('失败', 'Losses') }}</div>
+                                </v-card>
+                            </v-col>
+                            <v-col cols="6" md="3" class="text-center">
+                                <v-card class="pa-4" style="background: rgba(255,152,0,0.08) !important; border: 1px solid rgba(255,152,0,0.2);">
+                                    <div class="text-h4 neon-orange">{{ pushes }}</div>
+                                    <div class="text-subtitle1">{{ t('平局', 'Pushes') }}</div>
+                                </v-card>
+                            </v-col>
+                        </v-row>
+
+                        <!-- 最近游戏 -->
+                        <v-data-table
+                            :headers="statsHeaders"
+                            :items="recentGames"
+                            :items-per-page="5"
+                            class="mt-6"
+                            :no-data-text="t('暂无游戏数据', 'No game data yet')"
+                        >
+                            <template v-slot:item.result="{ item }">
+                                <v-chip
+                                    :color="item.result === 'win' ? 'success' : item.result === 'loss' ? 'error' : 'warning'"
+                                    small
+                                    dark
+                                >
+                                    {{ item.result === 'win' ? t('获胜','Win') : item.result === 'loss' ? t('失败','Loss') : t('平局','Push') }}
+                                </v-chip>
+                            </template>
+                            <template v-slot:item.profit="{ item }">
+                                <span :class="item.profit >= 0 ? 'success--text' : 'error--text'">
+                                    {{ item.profit >= 0 ? '+' : '' }}${{ item.profit }}
+                                </span>
+                            </template>
+                        </v-data-table>
+
+                        <!-- 游戏操作分析 -->
+                        <v-expansion-panels class="mt-6" multiple>
+                            <v-expansion-panel>
+                                <v-expansion-panel-header>
+                                    <div>
+                                        <v-icon class="mr-3" color="primary">mdi-brain</v-icon>
+                                        <span class="text-h6">{{ t('专业策略分析', 'Professional Analysis') }}</span>
+                                        <v-chip small class="ml-3" :color="overallGradeColor">{{ overallGrade }}</v-chip>
+                                    </div>
+                                </v-expansion-panel-header>
+                                <v-expansion-panel-content>
+                                    <!-- 基础策略分析 -->
+                                    <v-card class="mb-4" outlined>
+                                        <v-card-title class="neon-cyan">
+                                            <v-icon class="mr-3" color="#00f0ff">mdi-strategy</v-icon>
+                                            {{ t('基础策略分析', 'Basic Strategy Analysis') }}
+                                        </v-card-title>
+                                        <v-card-text>
+                                            <v-row>
+                                                <v-col cols="12" md="6">
+                                                    <div class="text-subtitle1 mb-2">{{ t('策略准确率', 'Strategy Accuracy') }}</div>
+                                                    <v-progress-linear
+                                                        :value="basicStrategyAccuracy"
+                                                        :color="basicStrategyAccuracy >= 90 ? 'success' : basicStrategyAccuracy >= 70 ? 'warning' : 'error'"
+                                                        height="25"
+                                                        class="mb-2"
+                                                    >
+                                                        <template v-slot:default="{ value }">
+                                                            <strong class="neon-cyan">{{ Math.ceil(value) }}%</strong>
+                                                        </template>
+                                                    </v-progress-linear>
+                                                </v-col>
+                                                <v-col cols="12" md="6">
+                                                    <v-chip-group column>
+                                                        <v-chip small :color="basicStrategyAccuracy >= 90 ? 'success' : 'warning'">
+                                                            {{ basicStrategyAccuracy >= 90 ? t('策略大师','Strategy Master') : basicStrategyAccuracy >= 70 ? t('进步空间','Room to Improve') : t('需要学习','Needs Practice') }}
+                                                        </v-chip>
+                                                        <v-chip small color="info">{{ t('赌场优势','House Edge') }}: {{ houseEdgeEstimate }}%</v-chip>
+                                                    </v-chip-group>
+                                                </v-col>
+                                            </v-row>
+
+                                            <!-- 详细决策分析 -->
+                                            <v-simple-table class="mt-4">
+                                                <template v-slot:default>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>{{ t('情况类型','Situation') }}</th>
+                                                            <th>{{ t('正确决策','Correct') }}</th>
+                                                            <th>{{ t('错误决策','Wrong') }}</th>
+                                                            <th>{{ t('准确率','Accuracy') }}</th>
+                                                            <th>{{ t('改进建议','Suggestion') }}</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="analysis in basicStrategyBreakdown" :key="analysis.type">
+                                                            <td>{{ analysis.type }}</td>
+                                                            <td><v-chip small color="success">{{ analysis.correct }}</v-chip></td>
+                                                            <td><v-chip small color="error">{{ analysis.wrong }}</v-chip></td>
+                                                            <td>
+                                                                <v-chip small :color="analysis.accuracy >= 90 ? 'success' : analysis.accuracy >= 70 ? 'warning' : 'error'">
+                                                                    {{ analysis.accuracy }}%
+                                                                </v-chip>
+                                                            </td>
+                                                            <td class="text-caption">{{ analysis.suggestion }}</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </template>
+                                            </v-simple-table>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <!-- 记牌系统分析 -->
+                                    <v-card class="mb-4" outlined>
+                                        <v-card-title class="neon-cyan">
+                                            <v-icon class="mr-3" color="#00f0ff">mdi-calculator</v-icon>
+                                            {{ t('记牌系统（Card Counting）分析', 'Card Counting Analysis') }}
+                                        </v-card-title>
+                                        <v-card-text>
+                                            <v-row>
+                                                <v-col cols="12" md="4">
+                                                    <v-card class="pa-3 text-center" style="background: rgba(0,240,255,0.06) !important; border: 1px solid rgba(0,240,255,0.15);">
+                                                        <div class="text-h4 neon-cyan">{{ hiLoCount }}</div>
+                                                        <div class="text-subtitle2">{{ t('当前Hi-Lo计数', 'Hi-Lo Count') }}</div>
+                                                    </v-card>
+                                                </v-col>
+                                                <v-col cols="12" md="4">
+                                                    <v-card class="pa-3 text-center" style="background: rgba(57,255,20,0.06) !important; border: 1px solid rgba(57,255,20,0.15);">
+                                                        <div class="text-h4 neon-green">{{ trueCount }}</div>
+                                                        <div class="text-subtitle2">{{ t('真实计数', 'True Count') }}</div>
+                                                    </v-card>
+                                                </v-col>
+                                                <v-col cols="12" md="4">
+                                                    <v-card class="pa-3 text-center" style="background: rgba(255,152,0,0.06) !important; border: 1px solid rgba(255,152,0,0.15);">
+                                                        <div class="text-h4 neon-orange">{{ bettingEfficiency }}%</div>
+                                                        <div class="text-subtitle2">{{ t('下注效率', 'Betting Efficiency') }}</div>
+                                                    </v-card>
+                                                </v-col>
+                                            </v-row>
+
+                                            <v-alert :type="countingAdviceType" class="mt-4">
+                                                <div class="text-subtitle1">{{ t('记牌建议', 'Counting Advice') }}</div>
+                                                <div>{{ countingAdvice }}</div>
+                                            </v-alert>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <!-- 资金管理分析 -->
+                                    <v-card class="mb-4" outlined>
+                                        <v-card-title class="neon-cyan">
+                                            <v-icon class="mr-3" color="#00f0ff">mdi-cash-multiple</v-icon>
+                                            {{ t('资金管理分析', 'Bankroll Management') }}
+                                        </v-card-title>
+                                        <v-card-text>
+                                            <v-row>
+                                                <v-col cols="12" md="3">
+                                                    <div class="text-center">
+                                                        <div class="text-h3" :class="totalProfit >= 0 ? 'success--text' : 'error--text'">
+                                                            {{ totalProfit >= 0 ? '+' : '' }}${{ totalProfit }}
+                                                        </div>
+                                                        <div class="text-subtitle2">{{ t('总盈亏', 'Total P/L') }}</div>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="12" md="3">
+                                                    <div class="text-center">
+                                                        <div class="text-h3 info--text">${{ averageBet }}</div>
+                                                        <div class="text-subtitle2">{{ t('平均下注', 'Avg Bet') }}</div>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="12" md="3">
+                                                    <div class="text-center">
+                                                        <div class="text-h3 warning--text">{{ volatilityIndex }}%</div>
+                                                        <div class="text-subtitle2">{{ t('波动指数', 'Volatility') }}</div>
+                                                    </div>
+                                                </v-col>
+                                                <v-col cols="12" md="3">
+                                                    <div class="text-center">
+                                                        <div class="text-h3" :class="kellyGradeColor">{{ kellyGrade }}</div>
+                                                        <div class="text-subtitle2">{{ t('凯利评分', 'Kelly Grade') }}</div>
+                                                    </div>
+                                                </v-col>
+                                            </v-row>
+
+                                            <v-alert :type="bankrollAdviceType" class="mt-4">
+                                                <div class="text-subtitle1">{{ t('资金管理建议', 'Bankroll Advice') }}</div>
+                                                <div>{{ bankrollAdvice }}</div>
+                                            </v-alert>
+                                        </v-card-text>
+                                    </v-card>
+
+                                    <!-- 综合评估与改进建议 -->
+                                    <v-card outlined>
+                                        <v-card-title class="neon-cyan">
+                                            <v-icon class="mr-3" color="#00f0ff">mdi-trophy</v-icon>
+                                            {{ t('综合评估与改进建议', 'Overall Assessment') }}
+                                        </v-card-title>
+                                        <v-card-text>
+                                            <v-row>
+                                                <v-col cols="12" md="8">
+                                                    <div class="text-h6 mb-3">{{ t('专业评估', 'Professional Assessment') }}</div>
+                                                    <p class="text-body-1">{{ professionalAssessment }}</p>
+
+                                                    <div class="text-h6 mb-3 mt-4">{{ t('改进建议', 'Improvement Tips') }}</div>
+                                                    <v-timeline dense>
+                                                        <v-timeline-item
+                                                            v-for="(suggestion, index) in improvementSuggestions"
+                                                            :key="index"
+                                                            :color="suggestion.priority === 'high' ? 'error' : suggestion.priority === 'medium' ? 'warning' : 'info'"
+                                                            small
+                                                        >
+                                                            <div class="text-subtitle2">{{ suggestion.title }}</div>
+                                                            <div class="text-caption">{{ suggestion.description }}</div>
+                                                        </v-timeline-item>
+                                                    </v-timeline>
+                                                </v-col>
+                                                <v-col cols="12" md="4">
+                                                    <v-card class="pa-4" style="background: rgba(139,92,246,0.06) !important; border: 1px solid rgba(139,92,246,0.15);">
+                                                        <div class="text-h6 text-center mb-3">{{ t('技能雷达图', 'Skill Radar') }}</div>
+                                                        <v-simple-table dense>
+                                                            <template v-slot:default>
+                                                                <tbody>
+                                                                    <tr v-for="skill in skillRadar" :key="skill.name">
+                                                                        <td>{{ skill.name }}</td>
+                                                                        <td>
+                                                                            <v-progress-linear
+                                                                                :value="skill.score"
+                                                                                :color="skill.score >= 80 ? 'success' : skill.score >= 60 ? 'warning' : 'error'"
+                                                                                height="15"
+                                                                            >
+                                                                                <template v-slot:default="{ value }">
+                                                                                    <small>{{ Math.ceil(value) }}%</small>
+                                                                                </template>
+                                                                            </v-progress-linear>
+                                                                        </td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </template>
+                                                        </v-simple-table>
+                                                    </v-card>
+                                                </v-col>
+                                            </v-row>
+                                        </v-card-text>
+                                    </v-card>
+                                </v-expansion-panel-content>
+                            </v-expansion-panel>
+                        </v-expansion-panels>
+                    </v-card-text>
+                    <v-card-text v-else class="text-center pa-6">
+                        <v-icon size="64" color="grey">mdi-chart-box-outline</v-icon>
+                        <h3 class="grey--text mt-4">{{ t('暂无游戏数据', 'No game data yet') }}</h3>
+                        <p class="grey--text">{{ t('开始游戏以查看详细统计', 'Start playing to see statistics') }}</p>
+                    </v-card-text>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn color="primary" @click="showStats = false">{{ t('关闭', 'Close') }}</v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
+
+            <!-- 提示信息 -->
+            <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+                {{ snackbar.text }}
+                <template v-slot:action="{ attrs }">
+                    <v-btn text v-bind="attrs" @click="snackbar.show = false">{{ t('关闭', 'Close') }}</v-btn>
+                </template>
+            </v-snackbar>
+        </v-app>
+    </div>
+
+    <!-- Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.min.js"></script>
+    <!-- Vuetify -->
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.6.14/dist/vuetify.min.js"></script>
+    <!-- Axios for API calls -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        new Vue({
+            el: '#app',
+            vuetify: new Vuetify({
+                theme: {
+                    dark: true,
+                    themes: {
+                        dark: {
+                            primary: '#00f0ff',
+                            secondary: '#8b5cf6',
+                            accent: '#ff00aa',
+                            error: '#ff003c',
+                            info: '#00f0ff',
+                            success: '#39ff14',
+                            warning: '#ff9800',
+                            background: '#0a0a0f',
+                            surface: '#0d1117',
+                        },
+                    },
+                },
+            }),
+
+            data: {
+                // 语言 / Language
+                lang: localStorage.getItem('bj_lang') || 'zh',
+
+                // 界面控制
+                showSetup: true,
+                showStats: false,
+                starting: false,
+                dealing: false,
+                processing: false,
+                aiThinking: false,
+
+                // 游戏设置
+                gameSettings: {
+                    numDecks: 1,
+                    initialChips: 300
+                },
+
+                // 游戏状态
+                gameId: null,
+                playerChips: 300,
+                currentBet: 25,
+                currentHand: null,
+                playerCards: [],
+                dealerCards: [],
+                playerTotal: 0,
+                dealerTotal: 0,
+                gameOver: false,
+                showDealerTotal: false,
+                gameResult: null,
+
+                // 游戏历史
+                gameHistory: [],
+                aiDecision: null,
+
+                // 提示信息
+                snackbar: {
+                    show: false,
+                    text: '',
+                    color: 'info'
+                }
+            },
+
+            computed: {
+                deckOptions() {
+                    return this.lang === 'zh' ? [
+                        { text: '1副牌 (适合算牌)', value: 1 },
+                        { text: '2副牌 (标准)', value: 2 },
+                        { text: '4副牌 (常见)', value: 4 },
+                        { text: '6副牌 (赌场标准)', value: 6 },
+                        { text: '8副牌 (困难)', value: 8 }
+                    ] : [
+                        { text: '1 Deck (Best for counting)', value: 1 },
+                        { text: '2 Decks (Standard)', value: 2 },
+                        { text: '4 Decks (Common)', value: 4 },
+                        { text: '6 Decks (Casino Standard)', value: 6 },
+                        { text: '8 Decks (Hard)', value: 8 }
+                    ];
+                },
+
+                statsHeaders() {
+                    return this.lang === 'zh' ? [
+                        { text: '局数', value: 'index' },
+                        { text: '结果', value: 'result' },
+                        { text: '玩家点数', value: 'playerTotal' },
+                        { text: '庄家点数', value: 'dealerTotal' },
+                        { text: '盈亏', value: 'profit' }
+                    ] : [
+                        { text: '#', value: 'index' },
+                        { text: 'Result', value: 'result' },
+                        { text: 'Player Score', value: 'playerTotal' },
+                        { text: 'Dealer Score', value: 'dealerTotal' },
+                        { text: 'P/L', value: 'profit' }
+                    ];
+                },
+
+                isValidSetup() {
+                    return this.gameSettings.numDecks > 0 && this.gameSettings.initialChips > 0;
+                },
+
+                canDouble() {
+                    return this.currentHand &&
+                           this.playerCards.length === 2 &&
+                           this.playerChips >= this.currentBet &&
+                           !this.gameOver;
+                },
+
+                winRate() {
+                    if (this.gameHistory.length === 0) return 0;
+                    const wins = this.gameHistory.filter(g => g.result === 'win').length;
+                    return Math.round((wins / this.gameHistory.length) * 100);
+                },
+
+                totalProfit() {
+                    return this.gameHistory.reduce((sum, game) => sum + game.profit, 0);
+                },
+
+                wins() {
+                    return this.gameHistory.filter(g => g.result === 'win').length;
+                },
+
+                losses() {
+                    return this.gameHistory.filter(g => g.result === 'loss').length;
+                },
+
+                pushes() {
+                    return this.gameHistory.filter(g => g.result === 'push').length;
+                },
+
+                recentGames() {
+                    return this.gameHistory.map((game, index) => ({
+                        ...game,
+                        index: index + 1
+                    })).reverse();
+                },
+
+                playerCardsDisplay() {
+                    return this.playerCards.map(card => this.formatCardDisplay(card));
+                },
+
+                dealerCardsDisplay() {
+                    return this.dealerCards.map((card, index) => {
+                        if (index === 1 && !this.showDealerTotal) {
+                            return { display: '🂠', color: 'card-back' };
+                        }
+                        return this.formatCardDisplay(card);
+                    });
+                },
+
+                resultText() {
+                    if (!this.gameResult) return '';
+                    const result = this.gameResult;
+                    const isZh = this.lang === 'zh';
+                    if (result.outcome === 'win') {
+                        if (this.playerTotal === 21 && this.playerCards.length === 2) {
+                            return isZh ? '🎉 黑杰克！获胜！' : '🎉 Blackjack! You win!';
+                        } else if (this.dealerTotal > 21) {
+                            return isZh ? '🎊 庄家爆牌 - 获胜！' : '🎊 Dealer Bust - You win!';
+                        } else {
+                            return isZh
+                                ? `🏆 点数更高 (${this.playerTotal} vs ${this.dealerTotal}) - 获胜！`
+                                : `🏆 Higher score (${this.playerTotal} vs ${this.dealerTotal}) - You win!`;
+                        }
+                    } else if (result.outcome === 'loss') {
+                        if (this.playerTotal > 21) {
+                            return isZh ? '💥 玩家爆牌 - 失败' : '💥 Bust - You lose';
+                        } else {
+                            return isZh
+                                ? `😞 点数不够 (${this.playerTotal} vs ${this.dealerTotal}) - 失败`
+                                : `😞 Lower score (${this.playerTotal} vs ${this.dealerTotal}) - You lose`;
+                        }
+                    } else {
+                        return isZh
+                            ? `🤝 平局 (${this.playerTotal} vs ${this.dealerTotal})`
+                            : `🤝 Push (${this.playerTotal} vs ${this.dealerTotal})`;
+                    }
+                },
+
+                resultColor() {
+                    if (!this.gameResult) return 'info';
+                    const outcome = this.gameResult.outcome;
+                    return outcome === 'win' ? 'success' : outcome === 'loss' ? 'error' : 'warning';
+                },
+
+                resultIcon() {
+                    if (!this.gameResult) return 'mdi-information';
+                    const outcome = this.gameResult.outcome;
+                    return outcome === 'win' ? 'mdi-trophy' : outcome === 'loss' ? 'mdi-emoticon-sad' : 'mdi-handshake';
+                },
+
+                confidenceColor() {
+                    if (!this.aiDecision) return 'grey';
+                    const confidence = this.aiDecision.confidence;
+                    if (confidence === '高' || confidence === 'High') return 'success';
+                    if (confidence === '中' || confidence === 'Medium') return 'warning';
+                    return 'error';
+                },
+
+                basicStrategyAccuracy() {
+                    try {
+                        if (this.gameHistory.length === 0) return 0;
+                        let correctDecisions = 0;
+                        let totalDecisions = 0;
+                        this.gameHistory.forEach(game => {
+                            try {
+                                if (game.playerCards && game.dealerCards && game.playerCards.length >= 2) {
+                                    const playerTotal = this.calculateHandValue(game.playerCards);
+                                    const dealerUpcard = game.dealerCards[0];
+                                    const dealerUpcardValue = this.getCardValue(dealerUpcard);
+                                    const optimalAction = this.getOptimalBasicStrategyAction(playerTotal, dealerUpcardValue, game.playerCards);
+                                    const actualAction = this.inferPlayerAction(game);
+                                    totalDecisions++;
+                                    if (optimalAction === actualAction) correctDecisions++;
+                                }
+                            } catch (error) {
+                                console.warn('Error in game analysis:', error);
+                            }
+                        });
+                        return totalDecisions > 0 ? Math.round((correctDecisions / totalDecisions) * 100) : 0;
+                    } catch (error) {
+                        console.warn('Error in basicStrategyAccuracy:', error);
+                        return 0;
+                    }
+                },
+
+                houseEdgeEstimate() {
+                    const accuracy = this.basicStrategyAccuracy;
+                    if (accuracy >= 95) return '0.5';
+                    if (accuracy >= 85) return '1.2';
+                    if (accuracy >= 70) return '2.8';
+                    return '5.2';
+                },
+
+                basicStrategyBreakdown() {
+                    const isZh = this.lang === 'zh';
+                    const breakdown = {
+                        hard: { correct: 0, wrong: 0, type: isZh ? '硬牌总数' : 'Hard Hands' },
+                        soft: { correct: 0, wrong: 0, type: isZh ? '软牌总数' : 'Soft Hands' },
+                        pairs: { correct: 0, wrong: 0, type: isZh ? '对子分牌' : 'Pairs' },
+                        double: { correct: 0, wrong: 0, type: isZh ? '加倍决策' : 'Doubling' }
+                    };
+                    this.gameHistory.forEach(game => {
+                        if (game.playerCards && game.dealerCards && game.playerCards.length >= 2) {
+                            const playerTotal = this.calculateHandValue(game.playerCards);
+                            const dealerUpcard = game.dealerCards[0];
+                            const dealerUpcardValue = this.getCardValue(dealerUpcard);
+                            const hasAce = game.playerCards.some(card => card.rank === 'Ace');
+                            const isPair = game.playerCards.length === 2 && game.playerCards[0].rank === game.playerCards[1].rank;
+                            const optimalAction = this.getOptimalBasicStrategyAction(playerTotal, dealerUpcardValue, game.playerCards);
+                            const actualAction = this.inferPlayerAction(game);
+                            let category = 'hard';
+                            if (isPair) category = 'pairs';
+                            else if (hasAce && playerTotal <= 21) category = 'soft';
+                            else if (actualAction === 'double' || optimalAction === 'double') category = 'double';
+                            if (optimalAction === actualAction) {
+                                breakdown[category].correct++;
+                            } else {
+                                breakdown[category].wrong++;
+                            }
+                        }
+                    });
+                    return Object.values(breakdown).map(cat => ({
+                        type: cat.type,
+                        correct: cat.correct,
+                        wrong: cat.wrong,
+                        accuracy: cat.correct + cat.wrong > 0 ? Math.round((cat.correct / (cat.correct + cat.wrong)) * 100) : 0,
+                        suggestion: this.getImprovementSuggestion(cat.type, cat.correct + cat.wrong > 0 ? (cat.correct / (cat.correct + cat.wrong)) * 100 : 0)
+                    }));
+                },
+
+                hiLoCount() {
+                    let count = 0;
+                    this.gameHistory.forEach(game => {
+                        if (game.playerCards && game.dealerCards) {
+                            [...game.playerCards, ...game.dealerCards].forEach(card => {
+                                const value = this.getCardValue(card);
+                                if (value >= 2 && value <= 6) count += 1;
+                                else if (value >= 10 || card.rank === 'Ace') count -= 1;
+                            });
+                        }
+                    });
+                    return count;
+                },
+
+                trueCount() {
+                    const decksRemaining = Math.max(1, this.gameSettings.numDecks - Math.floor(this.gameHistory.length / 15));
+                    return Math.round(this.hiLoCount / decksRemaining * 10) / 10;
+                },
+
+                bettingEfficiency() {
+                    if (this.gameHistory.length === 0) return 0;
+                    let optimalBets = 0;
+                    this.gameHistory.forEach((game, index) => {
+                        const currentTrueCount = this.calculateTrueCountAtGame(index);
+                        const optimalBet = this.getOptimalBet(currentTrueCount);
+                        const actualBet = game.bet;
+                        if (Math.abs(actualBet - optimalBet) <= optimalBet * 0.3) optimalBets++;
+                    });
+                    return Math.round((optimalBets / this.gameHistory.length) * 100);
+                },
+
+                countingAdvice() {
+                    const tc = this.trueCount;
+                    const isZh = this.lang === 'zh';
+                    if (tc >= 3) return isZh
+                        ? `真实计数为 ${tc}，建议大幅增加下注。此时玩家优势约 ${(tc * 0.5).toFixed(1)}%`
+                        : `True count is ${tc}. Significantly increase your bet. Player advantage ~${(tc * 0.5).toFixed(1)}%`;
+                    if (tc >= 1) return isZh
+                        ? `真实计数为 ${tc}，建议适度增加下注。轻微玩家优势`
+                        : `True count is ${tc}. Slightly increase your bet. Mild player advantage`;
+                    if (tc <= -2) return isZh
+                        ? `真实计数为 ${tc}，建议最小下注或暂停游戏。赌场优势较大`
+                        : `True count is ${tc}. Bet minimum or sit out. High house advantage`;
+                    return isZh
+                        ? `真实计数为 ${tc}，维持标准下注策略`
+                        : `True count is ${tc}. Maintain standard betting strategy`;
+                },
+
+                countingAdviceType() {
+                    const tc = this.trueCount;
+                    if (tc >= 2) return 'success';
+                    if (tc >= 0) return 'info';
+                    return 'warning';
+                },
+
+                averageBet() {
+                    if (this.gameHistory.length === 0) return 0;
+                    const total = this.gameHistory.reduce((sum, game) => sum + game.bet, 0);
+                    return Math.round(total / this.gameHistory.length);
+                },
+
+                volatilityIndex() {
+                    if (this.gameHistory.length === 0) return 0;
+                    const profits = this.gameHistory.map(game => game.profit);
+                    const mean = profits.reduce((sum, p) => sum + p, 0) / profits.length;
+                    const variance = profits.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / profits.length;
+                    return Math.round(Math.sqrt(variance));
+                },
+
+                kellyGrade() {
+                    const winRate = this.winRate / 100;
+                    const avgWin = this.gameHistory.filter(g => g.result === 'win').reduce((sum, g) => sum + Math.abs(g.profit), 0) / Math.max(1, this.wins);
+                    const avgLoss = this.gameHistory.filter(g => g.result === 'loss').reduce((sum, g) => sum + Math.abs(g.profit), 0) / Math.max(1, this.losses);
+                    if (avgLoss === 0) return 'A+';
+                    const kellyFraction = (winRate * avgWin - (1 - winRate) * avgLoss) / avgWin;
+                    if (kellyFraction > 0.15) return 'A';
+                    if (kellyFraction > 0.1) return 'B+';
+                    if (kellyFraction > 0.05) return 'B';
+                    if (kellyFraction > 0) return 'C+';
+                    return 'D';
+                },
+
+                kellyGradeColor() {
+                    const grade = this.kellyGrade;
+                    if (['A+', 'A'].includes(grade)) return 'success--text';
+                    if (['B+', 'B'].includes(grade)) return 'warning--text';
+                    return 'error--text';
+                },
+
+                bankrollAdvice() {
+                    const grade = this.kellyGrade;
+                    const vol = this.volatilityIndex;
+                    const isZh = this.lang === 'zh';
+                    if (grade === 'A+' || grade === 'A') {
+                        return isZh
+                            ? '优秀的资金管理！建议维持当前策略，可考虑在有利计数时适度增加单位下注。'
+                            : 'Excellent bankroll management! Maintain your current strategy. Consider increasing unit bet when count is favorable.';
+                    } else if (vol > 50) {
+                        return isZh
+                            ? '波动过大！建议降低单注金额，采用更保守的下注策略，重点关注基础策略的执行。'
+                            : 'Volatility too high! Lower your bet size, use a more conservative strategy, and focus on basic strategy execution.';
+                    } else {
+                        return isZh
+                            ? '建议学习凯利公式进行科学下注，根据真实计数调整下注大小，控制单次下注不超过总资金的2%。'
+                            : 'Learn the Kelly Criterion for scientific betting. Adjust bet size by true count and keep each bet under 2% of bankroll.';
+                    }
+                },
+
+                bankrollAdviceType() {
+                    const grade = this.kellyGrade;
+                    if (['A+', 'A'].includes(grade)) return 'success';
+                    if (this.volatilityIndex > 50) return 'error';
+                    return 'info';
+                },
+
+                overallGrade() {
+                    const basicScore = this.basicStrategyAccuracy;
+                    const bettingScore = this.bettingEfficiency;
+                    const kellyScore = ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D'].indexOf(this.kellyGrade);
+                    const overallScore = (basicScore * 0.5 + bettingScore * 0.3 + (6 - kellyScore) * 10 * 0.2);
+                    const isZh = this.lang === 'zh';
+                    if (overallScore >= 90) return isZh ? '专业级' : 'Professional';
+                    if (overallScore >= 80) return isZh ? '高级' : 'Advanced';
+                    if (overallScore >= 70) return isZh ? '中级' : 'Intermediate';
+                    if (overallScore >= 60) return isZh ? '初级' : 'Beginner';
+                    return isZh ? '新手' : 'Novice';
+                },
+
+                overallGradeColor() {
+                    const grade = this.overallGrade;
+                    if (['专业级', 'Professional'].includes(grade)) return 'success';
+                    if (['高级', 'Advanced'].includes(grade)) return 'info';
+                    if (['中级', 'Intermediate'].includes(grade)) return 'warning';
+                    return 'error';
+                },
+
+                professionalAssessment() {
+                    const basic = this.basicStrategyAccuracy;
+                    const betting = this.bettingEfficiency;
+                    const games = this.gameHistory.length;
+                    const isZh = this.lang === 'zh';
+                    if (games < 10) {
+                        return isZh
+                            ? '游戏局数较少，分析结果仅供参考。建议继续游戏以获得更准确的评估。'
+                            : 'Not enough games played. Results are for reference only. Keep playing for a more accurate assessment.';
+                    } else if (basic >= 90 && betting >= 80) {
+                        return isZh
+                            ? '恭喜！您已掌握了专业级别的21点技巧。基础策略执行精确，下注时机把握得当，可考虑在真实赌场环境中应用所学技巧。'
+                            : 'Congratulations! You have mastered professional-level blackjack. Excellent basic strategy execution and precise bet timing.';
+                    } else if (basic >= 80) {
+                        return isZh
+                            ? '您的基础策略掌握良好，但在下注策略方面仍有提升空间。建议深入学习记牌系统，提高下注效率。'
+                            : 'Good basic strategy, but betting still needs improvement. Study card counting systems to increase betting efficiency.';
+                    } else if (basic >= 60) {
+                        return isZh
+                            ? '基础策略掌握尚可，建议多加练习硬牌、软牌和对子的最优决策，这是成为专业玩家的基础。'
+                            : 'Decent basic strategy. Practice hard hands, soft hands, and pair decisions more — this is the foundation of professional play.';
+                    } else {
+                        return isZh
+                            ? '建议从基础策略开始系统学习。21点是技巧性很强的游戏，正确的策略能显著降低赌场优势。'
+                            : 'Start with systematic basic strategy study. Blackjack is a skill game; correct strategy significantly reduces the house edge.';
+                    }
+                },
+
+                improvementSuggestions() {
+                    const suggestions = [];
+                    const basic = this.basicStrategyAccuracy;
+                    const betting = this.bettingEfficiency;
+                    const isZh = this.lang === 'zh';
+                    if (basic < 80) {
+                        suggestions.push({
+                            priority: 'high',
+                            title: isZh ? '学习基础策略' : 'Learn Basic Strategy',
+                            description: isZh
+                                ? '重点练习硬牌16对10、软牌A-6对各种明牌的决策'
+                                : 'Focus on hard 16 vs 10, soft A-6 decisions against various dealer upcards'
+                        });
+                    }
+                    if (betting < 70) {
+                        suggestions.push({
+                            priority: 'high',
+                            title: isZh ? '改进下注策略' : 'Improve Betting Strategy',
+                            description: isZh
+                                ? '学习Hi-Lo记牌系统，根据真实计数调整下注大小'
+                                : 'Learn the Hi-Lo card counting system and adjust bet size by true count'
+                        });
+                    }
+                    if (this.volatilityIndex > 40) {
+                        suggestions.push({
+                            priority: 'medium',
+                            title: isZh ? '控制波动性' : 'Control Volatility',
+                            description: isZh
+                                ? '采用更保守的资金管理，避免情绪化下注'
+                                : 'Use more conservative bankroll management and avoid emotional betting'
+                        });
+                    }
+                    suggestions.push({
+                        priority: 'low',
+                        title: isZh ? '持续练习' : 'Keep Practicing',
+                        description: isZh
+                            ? '建议每周至少练习50局，保持技巧熟练度'
+                            : 'Aim for at least 50 hands per week to maintain skill sharpness'
+                    });
+                    return suggestions;
+                },
+
+                skillRadar() {
+                    const isZh = this.lang === 'zh';
+                    return [
+                        { name: isZh ? '基础策略' : 'Basic Strategy', score: this.basicStrategyAccuracy },
+                        { name: isZh ? '记牌能力' : 'Card Counting', score: this.bettingEfficiency },
+                        { name: isZh ? '资金管理' : 'Bankroll Mgmt', score: ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D'].indexOf(this.kellyGrade) !== -1 ? (6 - ['A+', 'A', 'B+', 'B', 'C+', 'C', 'D'].indexOf(this.kellyGrade)) * 15 : 0 },
+                        { name: isZh ? '风险控制' : 'Risk Control', score: Math.max(0, 100 - this.volatilityIndex) },
+                        { name: isZh ? '决策速度' : 'Decision Speed', score: Math.min(100, this.gameHistory.length * 2) }
+                    ];
+                }
+            },
+
+            watch: {
+                currentBet(newVal, oldVal) {
+                    console.log('Current Bet Changed:', oldVal, '→', newVal);
+                },
+                lang(val) {
+                    localStorage.setItem('bj_lang', val);
+                }
+            },
+
+            methods: {
+                t(zh, en) {
+                    return this.lang === 'zh' ? zh : en;
+                },
+
+                toggleLang() {
+                    this.lang = this.lang === 'zh' ? 'en' : 'zh';
+                    localStorage.setItem('bj_lang', this.lang);
+                },
+
+                async startGame() {
+                    this.starting = true;
+                    try {
+                        const response = await axios.post('/api/game/start', this.gameSettings);
+                        this.gameId = response.data.game_id;
+                        this.playerChips = this.gameSettings.initialChips;
+                        this.currentBet = await Math.min(25, this.playerChips);
+                        this.gameHistory = [];
+                        this.resetHand();
+                        this.showSetup = false;
+                        this.showMessage(this.t('🎮 游戏开始！祝你好运！', '🎮 Game started! Good luck!'), 'success');
+                    } catch (error) {
+                        console.error('Failed to start game:', error);
+                        this.showMessage(this.t('❌ 游戏启动失败', '❌ Failed to start game'), 'error');
+                    }
+                    this.starting = false;
+                },
+
+                async dealNewHand() {
+                    if (this.playerChips < this.currentBet) {
+                        this.showMessage(this.t('💰 筹码不足！', '💰 Insufficient chips!'), 'error');
+                        return;
+                    }
+                    this.dealing = true;
+                    this.resetHand();
+                    this.aiDecision = null;
+                    try {
+                        const response = await axios.post(`/api/game/${this.gameId}/deal`);
+                        await this.sleep(300);
+                        this.playerCards = response.data.player_cards;
+                        this.dealerCards = response.data.dealer_cards;
+                        this.playerTotal = response.data.player_total;
+                        this.currentHand = true;
+                        if (this.playerTotal === 21) {
+                            await this.sleep(1500);
+                            this.finishHand();
+                        }
+                    } catch (error) {
+                        console.error('Deal failed:', error);
+                        this.playerChips += this.currentBet;
+                        this.showMessage(this.t('❌ 发牌失败', '❌ Deal failed'), 'error');
+                    }
+                    this.dealing = false;
+                },
+
+                async playerHit() {
+                    this.processing = true;
+                    this.aiDecision = null;
+                    try {
+                        await this.sleep(200);
+                        const response = await axios.post(`/api/game/${this.gameId}/hit`);
+                        this.playerCards.push(response.data.card);
+                        this.playerTotal = this.calculateHandValue(this.playerCards);
+                        if (this.playerTotal > 21) {
+                            this.showMessage(this.t('💥 爆牌！', '💥 Bust!'), 'error');
+                            await this.sleep(1000);
+                            this.finishHand();
+                        }
+                    } catch (error) {
+                        console.error('Hit failed:', error);
+                        this.showMessage(this.t('❌ 要牌失败', '❌ Hit failed'), 'error');
+                    }
+                    this.processing = false;
+                },
+
+                async playerStand() {
+                    this.processing = true;
+                    this.aiDecision = null;
+                    await this.sleep(300);
+                    await this.dealerPlay();
+                    this.processing = false;
+                },
+
+                async playerDouble() {
+                    if (!this.canDouble) return;
+                    this.processing = true;
+                    this.aiDecision = null;
+                    this.playerChips -= this.currentBet;
+                    this.currentBet *= 2;
+                    this.showMessage(this.t(`💰 下注增加到 $${this.currentBet}`, `💰 Bet increased to $${this.currentBet}`), 'info');
+                    try {
+                        await this.sleep(500);
+                        const response = await axios.post(`/api/game/${this.gameId}/hit`);
+                        this.playerCards.push(response.data.card);
+                        this.playerTotal = this.calculateHandValue(this.playerCards);
+                        await this.sleep(1000);
+                        if (this.playerTotal <= 21) {
+                            await this.dealerPlay();
+                        } else {
+                            this.showMessage(this.t('💥 爆牌！', '💥 Bust!'), 'error');
+                            this.finishHand();
+                        }
+                    } catch (error) {
+                        console.error('Double failed:', error);
+                        this.showMessage(this.t('❌ 加倍失败', '❌ Double failed'), 'error');
+                    }
+                    this.processing = false;
+                },
+
+                async getAIAdvice() {
+                    if (!this.currentHand || this.gameOver) return;
+                    this.aiThinking = true;
+                    try {
+                        const response = await axios.post(`/api/game/${this.gameId}/decision`, {
+                            player_cards: this.playerCards,
+                            dealer_upcard: this.dealerCards[0],
+                            current_bet: this.currentBet
+                        });
+                        this.aiDecision = this.translateAIDecision(response.data.decision);
+                    } catch (error) {
+                        console.error('AI decision failed:', error);
+                        this.showMessage(this.t('🤖 AI分析暂时不可用', '🤖 AI analysis unavailable'), 'warning');
+                    }
+                    this.aiThinking = false;
+                },
+
+                translateAIDecision(decision) {
+                    const actionMap = {
+                        '要牌': 'Hit',
+                        '停牌': 'Stand',
+                        '加倍': 'Double',
+                        '分牌': 'Split',
+                        '投降': 'Surrender',
+                    };
+                    const confidenceMap = {
+                        '高': 'High',
+                        '中': 'Medium',
+                        '低': 'Low',
+                    };
+                    const reasoningMap = {
+                        '点数较低，安全要牌': 'Low hand total, safe to hit',
+                        '点数较高，避免爆牌': 'High hand total, avoid busting',
+                        '基于基本策略建议': 'Based on basic strategy recommendation',
+                    };
+                    const isZh = this.lang === 'zh';
+                    let action = decision.action;
+                    let confidence = decision.confidence;
+                    let reasoning = decision.reasoning;
+                    if (!isZh) {
+                        action = actionMap[action] || action;
+                        confidence = confidenceMap[confidence] || confidence;
+                        reasoning = reasoningMap[reasoning] || this.translateDealerReasoning(reasoning);
+                    }
+                    return { action, confidence, reasoning };
+                },
+
+                translateDealerReasoning(text) {
+                    const m = text.match(/庄家显示(\d+)，较(弱|强)，(保守停牌|必须要牌)/);
+                    if (m) {
+                        const strength = m[2] === '弱' ? 'weak' : 'strong';
+                        const action = m[3] === '保守停牌' ? 'stand conservatively' : 'must hit';
+                        return `Dealer shows ${m[1]}, ${strength} upcard, ${action}`;
+                    }
+                    return text;
+                },
+
+                followAIAdvice() {
+                    if (!this.aiDecision) return;
+                    const action = this.aiDecision.action.toLowerCase();
+                    if (action.includes('要牌') || action.includes('hit')) {
+                        this.playerHit();
+                    } else if (action.includes('停牌') || action.includes('stand')) {
+                        this.playerStand();
+                    } else if (action.includes('加倍') || action.includes('double')) {
+                        if (this.canDouble) {
+                            this.playerDouble();
+                        } else {
+                            this.showMessage(this.t('⚠️ 无法加倍，改为要牌', '⚠️ Cannot double, hitting instead'), 'warning');
+                            this.playerHit();
+                        }
+                    }
+                    this.aiDecision = null;
+                },
+
+                async dealerPlay() {
+                    this.showDealerTotal = true;
+                    this.dealerTotal = this.calculateHandValue(this.dealerCards);
+                    await this.sleep(1000);
+                    while (this.dealerTotal < 17) {
+                        this.showMessage(this.t('🤖 庄家要牌...', '🤖 Dealer hits...'), 'info');
+                        await this.sleep(1200);
+                        try {
+                            const response = await axios.post(`/api/game/${this.gameId}/hit`);
+                            this.dealerCards.push(response.data.card);
+                            this.dealerTotal = this.calculateHandValue(this.dealerCards);
+                            await this.sleep(800);
+                        } catch (error) {
+                            console.error('Dealer hit failed:', error);
+                            break;
+                        }
+                    }
+                    this.finishHand();
+                },
+
+                finishHand() {
+                    let outcome, profit;
+                    if (this.playerTotal > 21) {
+                        outcome = 'loss';
+                        profit = -this.currentBet;
+                    } else if (this.dealerTotal > 21) {
+                        outcome = 'win';
+                        profit = this.currentBet;
+                    } else if (this.playerTotal > this.dealerTotal) {
+                        outcome = 'win';
+                        profit = this.currentBet;
+                    } else if (this.playerTotal < this.dealerTotal) {
+                        outcome = 'loss';
+                        profit = -this.currentBet;
+                    } else {
+                        outcome = 'push';
+                        profit = 0;
+                    }
+                    if (this.playerTotal === 21 && this.playerCards.length === 2 && outcome === 'win') {
+                        profit = Math.floor(this.currentBet * 1.5);
+                    }
+                    if (outcome === 'win') {
+                        this.playerChips = this.playerChips + profit;
+                    } else if (outcome === 'loss') {
+                        this.playerChips = this.playerChips + profit;
+                    }
+                    this.gameResult = { outcome, profit };
+                    this.gameOver = true;
+                    this.showDealerTotal = true;
+                    this.gameHistory.push({
+                        timestamp: new Date(),
+                        bet: this.currentBet,
+                        playerTotal: this.playerTotal,
+                        dealerTotal: this.dealerTotal,
+                        result: outcome,
+                        profit,
+                        playerCards: [...this.playerCards],
+                        dealerCards: [...this.dealerCards]
+                    });
+                },
+
+                nextHand() {
+                    this.resetHand();
+                    this.currentBet = Math.min(this.currentBet, this.playerChips);
+                    if (this.playerChips <= 0) {
+                        this.showMessage(this.t('💸 筹码用完，游戏结束！', '💸 Out of chips! Game over!'), 'error');
+                        setTimeout(() => { this.showStats = true; }, 2000);
+                    }
+                },
+
+                resetHand() {
+                    this.currentHand = null;
+                    this.playerCards = [];
+                    this.dealerCards = [];
+                    this.playerTotal = 0;
+                    this.dealerTotal = 0;
+                    this.gameOver = false;
+                    this.showDealerTotal = false;
+                    this.gameResult = null;
+                    this.aiDecision = null;
+                },
+
+                resetGame() {
+                    this.showSetup = true;
+                    this.resetHand();
+                    this.gameId = null;
+                },
+
+                setBet(amount) {
+                    if (this.playerChips >= amount) {
+                        this.currentBet = amount;
+                    }
+                },
+
+                calculateHandValue(cards) {
+                    let total = 0;
+                    let aces = 0;
+                    for (let card of cards) {
+                        const value = this.getCardValue(card);
+                        if (value === 11) { aces++; total += 11; }
+                        else { total += value; }
+                    }
+                    while (total > 21 && aces > 0) { total -= 10; aces--; }
+                    return total;
+                },
+
+                getCardValue(card) {
+                    const rank = card.rank;
+                    if (rank === 'Ace') return 11;
+                    if (['Jack', 'Queen', 'King'].includes(rank)) return 10;
+                    return parseInt(rank);
+                },
+
+                formatCardDisplay(card) {
+                    const isRed = ['Hearts', 'Diamonds'].includes(card.suit);
+                    const suitSymbol = { 'Hearts': '♥', 'Diamonds': '♦', 'Spades': '♠', 'Clubs': '♣' }[card.suit];
+                    let rank = card.rank;
+                    if (rank === 'Ace') rank = 'A';
+                    else if (rank === 'Jack') rank = 'J';
+                    else if (rank === 'Queen') rank = 'Q';
+                    else if (rank === 'King') rank = 'K';
+                    return { display: `${rank}${suitSymbol}`, color: isRed ? 'card-red' : 'card-black' };
+                },
+
+                showMessage(text, color = 'info') {
+                    this.snackbar = { show: true, text, color };
+                },
+
+                sleep(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                },
+
+                getOptimalBasicStrategyAction(playerTotal, dealerUpcard, playerCards) {
+                    const hasAce = playerCards.some(card => card.rank === 'Ace');
+                    const isPair = playerCards.length === 2 && playerCards[0].rank === playerCards[1].rank;
+                    if (isPair) {
+                        const pairRank = playerCards[0].rank;
+                        if (pairRank === 'Ace' || pairRank === '8') return 'split';
+                        if (pairRank === '10' || pairRank === 'Jack' || pairRank === 'Queen' || pairRank === 'King') return 'stand';
+                        if (pairRank === '9' && [7, 10, 11].includes(dealerUpcard)) return 'stand';
+                        if (pairRank === '9') return 'split';
+                        if (['2', '3', '6', '7'].includes(pairRank) && dealerUpcard <= 7) return 'split';
+                        if (pairRank === '4' && [5, 6].includes(dealerUpcard)) return 'split';
+                        if (pairRank === '5') return dealerUpcard <= 9 ? 'double' : 'hit';
+                    }
+                    if (hasAce && playerTotal <= 21) {
+                        if (playerTotal >= 19) return 'stand';
+                        if (playerTotal === 18) {
+                            if ([2, 7, 8].includes(dealerUpcard)) return 'stand';
+                            if ([3, 4, 5, 6].includes(dealerUpcard)) return 'double';
+                            return 'hit';
+                        }
+                        if (playerTotal === 17 && [3, 4, 5, 6].includes(dealerUpcard)) return 'double';
+                        if ([15, 16].includes(playerTotal) && [4, 5, 6].includes(dealerUpcard)) return 'double';
+                        if ([13, 14].includes(playerTotal) && [5, 6].includes(dealerUpcard)) return 'double';
+                        return 'hit';
+                    }
+                    if (playerTotal >= 17) return 'stand';
+                    if ([13, 14, 15, 16].includes(playerTotal) && dealerUpcard >= 7) return 'hit';
+                    if ([13, 14, 15, 16].includes(playerTotal) && dealerUpcard <= 6) return 'stand';
+                    if (playerTotal === 12 && [4, 5, 6].includes(dealerUpcard)) return 'stand';
+                    if (playerTotal === 12) return 'hit';
+                    if (playerTotal === 11) return 'double';
+                    if (playerTotal === 10 && dealerUpcard <= 9) return 'double';
+                    if (playerTotal === 9 && [3, 4, 5, 6].includes(dealerUpcard)) return 'double';
+                    if (playerTotal <= 8) return 'hit';
+                    return 'hit';
+                },
+
+                inferPlayerAction(game) {
+                    const safeAverageBet = this.gameHistory.length > 0 ? this.averageBet : 25;
+                    if (game.playerCards.length === 2) {
+                        if (game.bet > safeAverageBet * 1.8) return 'double';
+                        return 'stand';
+                    } else if (game.playerCards.length > 2) {
+                        return 'hit';
+                    }
+                    return 'stand';
+                },
+
+                getImprovementSuggestion(category, accuracy) {
+                    const isZh = this.lang === 'zh';
+                    if (accuracy >= 90) return isZh ? '表现优秀，继续保持' : 'Excellent, keep it up';
+                    const suggestions = isZh ? {
+                        '硬牌总数': '重点学习12-16对各种明牌的决策',
+                        '软牌总数': '掌握软17、软18的加倍时机',
+                        '对子分牌': '记住AA和88必分，99分牌策略',
+                        '加倍决策': '学习11、10、9的加倍条件'
+                    } : {
+                        'Hard Hands': 'Focus on 12-16 decisions against all dealer upcards',
+                        'Soft Hands': 'Learn doubling spots for soft 17 and soft 18',
+                        'Pairs': 'Memorize: always split AA and 88; know the 99 strategy',
+                        'Doubling': 'Learn doubling conditions for 11, 10, and 9'
+                    };
+                    return suggestions[category] || (isZh ? '需要更多练习' : 'More practice needed');
+                },
+
+                calculateTrueCountAtGame(gameIndex) {
+                    let count = 0;
+                    for (let i = 0; i <= gameIndex; i++) {
+                        const game = this.gameHistory[i];
+                        if (game.playerCards && game.dealerCards) {
+                            [...game.playerCards, ...game.dealerCards].forEach(card => {
+                                const value = this.getCardValue(card);
+                                if (value >= 2 && value <= 6) count += 1;
+                                else if (value >= 10 || card.rank === 'Ace') count -= 1;
+                            });
+                        }
+                    }
+                    const decksRemaining = Math.max(1, this.gameSettings.numDecks - Math.floor((gameIndex + 1) / 15));
+                    return count / decksRemaining;
+                },
+
+                getOptimalBet(trueCount) {
+                    const baseBet = 25;
+                    if (trueCount <= 0) return baseBet;
+                    if (trueCount >= 3) return baseBet * 4;
+                    if (trueCount >= 2) return baseBet * 3;
+                    if (trueCount >= 1) return baseBet * 2;
+                    return baseBet;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
