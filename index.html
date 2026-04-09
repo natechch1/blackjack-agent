@@ -1101,6 +1101,7 @@
                 playerTotal: 0,
                 dealerTotal: 0,
                 gameOver: false,
+                firstAction: null,
                 showDealerTotal: false,
                 gameResult: null,
 
@@ -1301,11 +1302,19 @@
                             const dealerUpcardValue = this.getCardValue(dealerUpcard);
                             const hasAce = game.playerCards.some(card => card.rank === 'Ace');
                             const isPair = game.playerCards.length === 2 && game.playerCards[0].rank === game.playerCards[1].rank;
+                            // Calculate hard total (all Aces counted as 1) to detect soft hands
+                            let hardTotal = 0;
+                            game.playerCards.forEach(card => {
+                                if (card.rank === 'Ace') hardTotal += 1;
+                                else if (['Jack', 'Queen', 'King'].includes(card.rank)) hardTotal += 10;
+                                else hardTotal += parseInt(card.rank);
+                            });
+                            const isSoft = hasAce && hardTotal !== playerTotal; // Ace is counted as 11
                             const optimalAction = this.getOptimalBasicStrategyAction(playerTotal, dealerUpcardValue, game.playerCards);
                             const actualAction = this.inferPlayerAction(game);
                             let category = 'hard';
                             if (isPair) category = 'pairs';
-                            else if (hasAce && playerTotal <= 21) category = 'soft';
+                            else if (isSoft) category = 'soft';
                             else if (actualAction === 'double' || optimalAction === 'double') category = 'double';
                             if (optimalAction === actualAction) {
                                 breakdown[category].correct++;
@@ -1330,7 +1339,7 @@
                             [...game.playerCards, ...game.dealerCards].forEach(card => {
                                 const value = this.getCardValue(card);
                                 if (value >= 2 && value <= 6) count += 1;
-                                else if (value >= 10 || card.rank === 'Ace') count -= 1;
+                                else if (value >= 10) count -= 1;
                             });
                         }
                     });
@@ -1584,6 +1593,7 @@
                         return;
                     }
                     this.dealing = true;
+                    this.playerChips -= this.currentBet;
                     this.resetHand();
                     this.aiDecision = null;
                     try {
@@ -1594,6 +1604,8 @@
                         this.playerTotal = response.data.player_total;
                         this.currentHand = true;
                         if (this.playerTotal === 21) {
+                            this.showDealerTotal = true;
+                            this.dealerTotal = this.calculateHandValue(this.dealerCards);
                             await this.sleep(1500);
                             this.finishHand();
                         }
@@ -1607,6 +1619,7 @@
 
                 async playerHit() {
                     this.processing = true;
+                    if (!this.firstAction) this.firstAction = 'hit';
                     this.aiDecision = null;
                     try {
                         await this.sleep(200);
@@ -1627,6 +1640,7 @@
 
                 async playerStand() {
                     this.processing = true;
+                    if (!this.firstAction) this.firstAction = 'stand';
                     this.aiDecision = null;
                     await this.sleep(300);
                     await this.dealerPlay();
@@ -1636,6 +1650,7 @@
                 async playerDouble() {
                     if (!this.canDouble) return;
                     this.processing = true;
+                    if (!this.firstAction) this.firstAction = 'double';
                     this.aiDecision = null;
                     this.playerChips -= this.currentBet;
                     this.currentBet *= 2;
@@ -1756,7 +1771,19 @@
 
                 finishHand() {
                     let outcome, profit;
-                    if (this.playerTotal > 21) {
+                    const isPlayerBJ = this.playerTotal === 21 && this.playerCards.length === 2;
+                    const isDealerBJ = this.dealerTotal === 21 && this.dealerCards.length === 2;
+
+                    if (isPlayerBJ && isDealerBJ) {
+                        outcome = 'push';
+                        profit = 0;
+                    } else if (isPlayerBJ) {
+                        outcome = 'win';
+                        profit = Math.floor(this.currentBet * 1.5);
+                    } else if (this.playerTotal > 21) {
+                        outcome = 'loss';
+                        profit = -this.currentBet;
+                    } else if (isDealerBJ) {
                         outcome = 'loss';
                         profit = -this.currentBet;
                     } else if (this.dealerTotal > 21) {
@@ -1772,14 +1799,16 @@
                         outcome = 'push';
                         profit = 0;
                     }
-                    if (this.playerTotal === 21 && this.playerCards.length === 2 && outcome === 'win') {
-                        profit = Math.floor(this.currentBet * 1.5);
-                    }
+
+                    // Bet was deducted upfront; now settle
                     if (outcome === 'win') {
-                        this.playerChips = this.playerChips + profit;
-                    } else if (outcome === 'loss') {
-                        this.playerChips = this.playerChips + profit;
+                        // Return original bet + winnings
+                        this.playerChips += this.currentBet + (isPlayerBJ ? Math.floor(this.currentBet * 1.5) : this.currentBet);
+                    } else if (outcome === 'push') {
+                        // Return original bet
+                        this.playerChips += this.currentBet;
                     }
+                    // Loss: bet already deducted, nothing to return
                     this.gameResult = { outcome, profit };
                     this.gameOver = true;
                     this.showDealerTotal = true;
@@ -1791,7 +1820,8 @@
                         result: outcome,
                         profit,
                         playerCards: [...this.playerCards],
-                        dealerCards: [...this.dealerCards]
+                        dealerCards: [...this.dealerCards],
+                        firstAction: this.firstAction || 'stand'
                     });
                 },
 
@@ -1813,6 +1843,7 @@
                     this.gameOver = false;
                     this.showDealerTotal = false;
                     this.gameResult = null;
+                    this.firstAction = null;
                     this.aiDecision = null;
                 },
 
@@ -1904,14 +1935,15 @@
                 },
 
                 inferPlayerAction(game) {
-                    const safeAverageBet = this.gameHistory.length > 0 ? this.averageBet : 25;
+                    // Use recorded action if available (new format)
+                    if (game.firstAction) return game.firstAction;
+                    // Fallback for old history entries without firstAction
                     if (game.playerCards.length === 2) {
+                        const safeAverageBet = this.gameHistory.length > 0 ? this.averageBet : 25;
                         if (game.bet > safeAverageBet * 1.8) return 'double';
                         return 'stand';
-                    } else if (game.playerCards.length > 2) {
-                        return 'hit';
                     }
-                    return 'stand';
+                    return 'hit';
                 },
 
                 getImprovementSuggestion(category, accuracy) {
@@ -1939,7 +1971,7 @@
                             [...game.playerCards, ...game.dealerCards].forEach(card => {
                                 const value = this.getCardValue(card);
                                 if (value >= 2 && value <= 6) count += 1;
-                                else if (value >= 10 || card.rank === 'Ace') count -= 1;
+                                else if (value >= 10) count -= 1;
                             });
                         }
                     }
