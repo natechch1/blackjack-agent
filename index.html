@@ -1,9 +1,30 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>21点游戏模拟器 - Blackjack Simulator</title>
+    <title>Blackjack AI Agent — Real-time Strategy Coach</title>
+    <meta name="description" content="AI-powered blackjack trainer combining numerical optimization with LLM reasoning. Features real-time strategy coaching, Hi-Lo card counting, Monte Carlo simulation, Kelly Criterion bankroll management, and professional performance analytics.">
+    <meta name="keywords" content="blackjack, AI, card counting, strategy, machine learning, LangChain, Vue.js, Python, Flask">
+    <meta name="author" content="Hongce Chen">
+
+    <!-- Open Graph / LinkedIn / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://blackjack-agent.onrender.com/">
+    <meta property="og:title" content="Blackjack AI Agent — Real-time Strategy Coach">
+    <meta property="og:description" content="AI-powered blackjack trainer combining probability theory with LLM coaching. Learn optimal strategy, card counting, and bankroll management through real-time feedback.">
+    <meta property="og:image" content="https://raw.githubusercontent.com/natechch1/blackjack-agent/main/docs/screenshots/gameplay.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Blackjack AI Agent">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Blackjack AI Agent — Real-time Strategy Coach">
+    <meta name="twitter:description" content="AI-powered blackjack trainer with real-time strategy coaching, card counting analytics, and professional performance tracking.">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/natechch1/blackjack-agent/main/docs/screenshots/gameplay.png">
+
     <!-- Vuetify CSS -->
     <link href="https://cdn.jsdelivr.net/npm/vuetify@2.6.14/dist/vuetify.min.css" rel="stylesheet">
     <!-- Material Design Icons -->
@@ -11,6 +32,9 @@
     <!-- Cyberpunk Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Hide Vue templates until mounted — prevents crawlers from seeing {{ }} syntax */
+        [v-cloak] { display: none !important; }
+
         /* ===== CYBERPUNK BASE ===== */
         * {
             -webkit-tap-highlight-color: transparent;
@@ -539,7 +563,27 @@
     </style>
 </head>
 <body>
-    <div id="app">
+    <!-- SEO: visible to crawlers that don't execute JavaScript (LinkedIn, Facebook, etc.) -->
+    <noscript>
+        <div style="max-width:800px;margin:40px auto;padding:20px;font-family:sans-serif;color:#e0e0e0;background:#0a0a0f;">
+            <h1>Blackjack AI Agent — Real-time Strategy Coach</h1>
+            <p>An AI-powered blackjack trainer that combines numerical optimization with LLM-enhanced reasoning to help you master optimal blackjack strategy.</p>
+            <h2>Features</h2>
+            <ul>
+                <li>Real-time AI strategy recommendations with confidence levels</li>
+                <li>Hi-Lo card counting system with true count tracking</li>
+                <li>Monte Carlo simulation for hand outcome prediction</li>
+                <li>Kelly Criterion bankroll management</li>
+                <li>Professional analytics: strategy accuracy, skill radar, performance tracking</li>
+                <li>Cyberpunk-themed UI with bilingual support (English / 中文)</li>
+            </ul>
+            <h2>Tech Stack</h2>
+            <p>Vue.js + Vuetify | Flask + Python | LangChain ReAct Agent | Deepseek R1 LLM | Deployed on Render</p>
+            <p>Enable JavaScript to play the game.</p>
+        </div>
+    </noscript>
+
+    <div id="app" v-cloak>
         <v-app>
             <!-- 游戏设置对话框 / Game Setup Dialog -->
             <v-dialog v-model="showSetup" :max-width="$vuetify.breakpoint.xs ? '100%' : 600" persistent>
