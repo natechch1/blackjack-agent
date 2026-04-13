@@ -12,10 +12,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* ===== CYBERPUNK BASE ===== */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
         body {
             background: #050508;
             font-family: 'Rajdhani', sans-serif;
             color: #e0e0e0;
+            touch-action: manipulation;
         }
 
         /* ===== GAME TABLE ===== */
@@ -372,13 +376,173 @@
             border: 1px solid rgba(0, 240, 255, 0.2);
             box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
         }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+
+        /* Mobile app bar: hide overflow chips, compact layout */
+        @media (max-width: 768px) {
+            .mobile-hide { display: none !important; }
+        }
+
+        /* Mobile status bar below app bar */
+        .mobile-status-bar {
+            display: none;
+            background: rgba(10, 10, 15, 0.95);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+            padding: 6px 12px;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        @media (max-width: 768px) {
+            .mobile-status-bar { display: flex; }
+        }
+
+        @media (max-width: 600px) {
+            /* Smaller cards on mobile */
+            .playing-card {
+                width: 56px;
+                height: 78px;
+                margin: 3px;
+                border-radius: 6px;
+            }
+            .playing-card .card-content {
+                font-size: 11px;
+            }
+            .playing-card:hover {
+                transform: none;
+            }
+
+            /* Smaller betting chips */
+            .chip {
+                width: 44px;
+                height: 44px;
+                font-size: 11px;
+                margin: 4px;
+                border-width: 2px;
+            }
+
+            /* Reduce section padding */
+            .game-section.pa-6,
+            .v-card.pa-6,
+            .v-card.pa-8 {
+                padding: 12px !important;
+            }
+
+            /* Compact headings */
+            .display-1 {
+                font-size: 1.2rem !important;
+            }
+            .text-h3 {
+                font-size: 1.4rem !important;
+            }
+            .text-h4 {
+                font-size: 1.1rem !important;
+            }
+            .text-h5 {
+                font-size: 0.95rem !important;
+            }
+            .text-h6 {
+                font-size: 0.85rem !important;
+            }
+
+            /* Game table less padding */
+            .game-table.pa-4 {
+                padding: 8px !important;
+            }
+            .game-table {
+                min-height: auto;
+                border-radius: 0;
+            }
+
+            /* Action buttons: full width, stacked */
+            .mobile-action-grid {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                width: 100%;
+            }
+            .mobile-action-grid .v-btn {
+                margin: 0 !important;
+                width: 100%;
+                min-height: 48px;
+            }
+
+            /* Stats dialog fullscreen */
+            .v-dialog {
+                margin: 0 !important;
+                max-height: 100% !important;
+                border-radius: 0 !important;
+            }
+
+            /* AI panel compact */
+            .ai-panel .v-card-title {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .ai-panel .v-card-title .v-chip {
+                margin-left: 0 !important;
+            }
+
+            /* Result card compact */
+            .result-celebration .display-1 {
+                font-size: 1.1rem !important;
+            }
+            .result-celebration .text-h4 {
+                font-size: 1rem !important;
+            }
+
+            /* Stats cards compact */
+            .stats-card .text-h3 {
+                font-size: 1.3rem !important;
+            }
+
+            /* Expansion panels */
+            .v-expansion-panel-content__wrap {
+                padding: 0 8px 8px !important;
+            }
+
+            /* Data tables scroll horizontally */
+            .v-data-table, .v-simple-table {
+                overflow-x: auto;
+            }
+            .v-data-table th, .v-data-table td,
+            .v-simple-table th, .v-simple-table td {
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+                white-space: nowrap;
+            }
+
+            /* Slider thumb label */
+            .v-slider__thumb-label {
+                font-size: 11px;
+            }
+        }
+
+        /* Medium mobile (between 601-768px) */
+        @media (min-width: 601px) and (max-width: 768px) {
+            .playing-card {
+                width: 68px;
+                height: 94px;
+                margin: 4px;
+            }
+            .chip {
+                width: 52px;
+                height: 52px;
+                font-size: 13px;
+                margin: 5px;
+            }
+            .display-1 {
+                font-size: 1.6rem !important;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="app">
         <v-app>
             <!-- 游戏设置对话框 / Game Setup Dialog -->
-            <v-dialog v-model="showSetup" max-width="600" persistent>
+            <v-dialog v-model="showSetup" :max-width="$vuetify.breakpoint.xs ? '100%' : 600" persistent>
                 <v-card>
                     <v-card-title class="neon-cyan" style="background: rgba(0,240,255,0.05); border-bottom: 1px solid rgba(0,240,255,0.3);">
                         <v-icon class="mr-3" color="#00f0ff" large>mdi-cards-playing-outline</v-icon>
@@ -438,32 +602,32 @@
             <v-container fluid class="pa-0" v-if="!showSetup">
                 <!-- 顶部状态栏 -->
                 <v-app-bar dark style="background: linear-gradient(90deg, rgba(10,10,15,0.95), rgba(13,17,23,0.95)) !important; border-bottom: 1px solid rgba(0,240,255,0.3); box-shadow: 0 0 20px rgba(0,240,255,0.1);">
-                    <v-icon class="mr-3" large>mdi-cards-playing-outline</v-icon>
-                    <v-toolbar-title class="text-h5">{{ t('21点游戏模拟器', 'Blackjack Simulator') }}</v-toolbar-title>
+                    <v-icon class="mr-2 mr-md-3">mdi-cards-playing-outline</v-icon>
+                    <v-toolbar-title class="text-h5" style="white-space: nowrap;">{{ t('21点', 'BJ') }}<span class="mobile-hide">{{ t('游戏模拟器', ' Simulator') }}</span></v-toolbar-title>
                     <v-spacer></v-spacer>
 
-                    <v-chip class="mr-3" color="success" large outlined>
-                        <v-icon left>mdi-cash</v-icon>
+                    <v-chip class="mr-2 mr-md-3" color="success" outlined :small="$vuetify.breakpoint.smAndDown">
+                        <v-icon left :small="$vuetify.breakpoint.smAndDown">mdi-cash</v-icon>
                         ${{ playerChips }}
                     </v-chip>
 
-                    <v-chip class="mr-3" color="warning" large outlined v-if="currentBet > 0">
+                    <v-chip class="mr-2 mr-md-3 mobile-hide" color="warning" outlined v-if="currentBet > 0">
                         <v-icon left>mdi-target</v-icon>
                         {{ t('下注', 'Bet') }}: ${{ currentBet }}
                     </v-chip>
 
-                    <v-chip class="mr-3" color="info" large outlined v-if="gameHistory.length > 0">
+                    <v-chip class="mr-2 mr-md-3 mobile-hide" color="info" outlined v-if="gameHistory.length > 0">
                         <v-icon left>mdi-chart-line</v-icon>
                         {{ winRate }}% {{ t('胜率', 'Win Rate') }}
                     </v-chip>
 
-                    <v-btn icon @click="toggleLang" class="mr-1">
-                        <span style="font-size:12px;font-weight:bold;color:#00f0ff">{{ lang === 'zh' ? 'EN' : '中文' }}</span>
+                    <v-btn icon small @click="toggleLang" class="mr-1">
+                        <span style="font-size:11px;font-weight:bold;color:#00f0ff">{{ lang === 'zh' ? 'EN' : '中文' }}</span>
                     </v-btn>
 
                     <v-menu bottom left>
                         <template v-slot:activator="{ on, attrs }">
-                            <v-btn icon v-bind="attrs" v-on="on">
+                            <v-btn icon small v-bind="attrs" v-on="on">
                                 <v-icon>mdi-dots-vertical</v-icon>
                             </v-btn>
                         </template>
@@ -480,15 +644,28 @@
                     </v-menu>
                 </v-app-bar>
 
+                <!-- Mobile status bar: shows bet & win rate below app bar -->
+                <div class="mobile-status-bar">
+                    <v-chip small color="warning" outlined v-if="currentBet > 0">
+                        {{ t('下注', 'Bet') }}: ${{ currentBet }}
+                    </v-chip>
+                    <v-chip small color="info" outlined v-if="gameHistory.length > 0">
+                        {{ winRate }}% {{ t('胜率', 'Win Rate') }}
+                    </v-chip>
+                    <v-chip small color="purple" outlined v-if="gameHistory.length > 0">
+                        {{ t('局数', 'Games') }}: {{ gameHistory.length }}
+                    </v-chip>
+                </div>
+
                 <!-- 游戏桌面 -->
                 <v-container fluid class="game-table pa-4">
                     <!-- 庄家区域 -->
                     <v-row>
                         <v-col cols="12">
-                            <v-card class="game-section dealer-section pa-6 text-center">
-                                <div class="mb-4">
+                            <v-card class="game-section dealer-section pa-3 pa-md-6 text-center">
+                                <div class="mb-2 mb-md-4">
                                     <h2 class="neon-magenta display-1 neon-flicker">
-                                        <v-icon large color="#ff00aa" class="mr-3">mdi-account-tie</v-icon>
+                                        <v-icon color="#ff00aa" class="mr-2 mr-md-3" :large="$vuetify.breakpoint.mdAndUp">mdi-account-tie</v-icon>
                                         {{ t('庄家', 'Dealer') }}
                                     </h2>
                                     <v-chip v-if="currentHand && showDealerTotal"
@@ -520,12 +697,12 @@
                     </v-row>
 
                     <!-- 玩家区域 -->
-                    <v-row class="mt-4">
+                    <v-row class="mt-2 mt-md-4">
                         <v-col cols="12">
-                            <v-card class="game-section player-section pa-6 text-center">
-                                <div class="mb-4">
+                            <v-card class="game-section player-section pa-3 pa-md-6 text-center">
+                                <div class="mb-2 mb-md-4">
                                     <h2 class="neon-cyan display-1">
-                                        <v-icon large color="#00f0ff" class="mr-3">mdi-account</v-icon>
+                                        <v-icon color="#00f0ff" class="mr-2 mr-md-3" :large="$vuetify.breakpoint.mdAndUp">mdi-account</v-icon>
                                         {{ t('玩家', 'Player') }}
                                     </h2>
                                     <v-chip v-if="currentHand" color="rgba(0,240,255,0.15)" text-color="#00f0ff" large class="mt-2">
@@ -552,12 +729,12 @@
                     </v-row>
 
                     <!-- 下注和控制区域 -->
-                    <v-row class="mt-4" v-if="!currentHand">
+                    <v-row class="mt-2 mt-md-4" v-if="!currentHand">
                         <v-col cols="12" md="6">
                             <!-- 下注区域 -->
-                            <v-card class="game-section pa-6">
+                            <v-card class="game-section pa-3 pa-md-6">
                                 <v-card-title class="neon-cyan">
-                                    <v-icon class="mr-2" color="#00f0ff" large>mdi-cash-multiple</v-icon>
+                                    <v-icon class="mr-2" color="#00f0ff">mdi-cash-multiple</v-icon>
                                     <span class="text-h5">{{ t('下注选择', 'Place Bet') }}</span>
                                 </v-card-title>
                                 <v-card-text>
@@ -583,13 +760,14 @@
                                 <v-card-actions class="justify-center">
                                     <v-btn
                                         color="primary"
-                                        x-large
+                                        :x-large="$vuetify.breakpoint.mdAndUp"
+                                        :large="$vuetify.breakpoint.smAndDown"
                                         @click="dealNewHand"
                                         :disabled="playerChips < currentBet || currentBet <= 0"
                                         :loading="dealing"
-                                        class="px-8"
+                                        class="px-6 px-md-8"
                                     >
-                                        <v-icon left large>mdi-cards-playing-outline</v-icon>
+                                        <v-icon left>mdi-cards-playing-outline</v-icon>
                                         {{ t('发牌', 'Deal') }} (${{ currentBet }})
                                     </v-btn>
                                 </v-card-actions>
@@ -598,9 +776,9 @@
 
                         <v-col cols="12" md="6">
                             <!-- 游戏统计 -->
-                            <v-card class="stats-card pa-6" style="height: 100%;">
-                                <v-card-title class="neon-cyan">
-                                    <v-icon class="mr-2" color="#00f0ff" large>mdi-chart-box</v-icon>
+                            <v-card class="stats-card pa-3 pa-md-6" style="height: 100%;">
+                                <v-card-title class="neon-cyan pa-3 pa-md-4">
+                                    <v-icon class="mr-2" color="#00f0ff">mdi-chart-box</v-icon>
                                     <span class="text-h5">{{ t('游戏统计', 'Game Stats') }}</span>
                                 </v-card-title>
                                 <v-card-text class="neon-cyan">
@@ -632,57 +810,61 @@
                     </v-row>
 
                     <!-- 游戏中控制按钮 -->
-                    <v-row v-if="currentHand && !gameOver" class="mt-4">
+                    <v-row v-if="currentHand && !gameOver" class="mt-2 mt-md-4">
                         <v-col cols="12">
-                            <v-card class="game-section pa-6">
-                                <v-card-title class="justify-center neon-cyan">
-                                    <v-icon class="mr-3" color="#00f0ff" large>mdi-gesture-tap</v-icon>
+                            <v-card class="game-section pa-3 pa-md-6">
+                                <v-card-title class="justify-center neon-cyan pa-2 pa-md-4">
+                                    <v-icon class="mr-2" color="#00f0ff">mdi-gesture-tap</v-icon>
                                     <span class="text-h5">{{ t('选择行动', 'Choose Action') }}</span>
                                 </v-card-title>
-                                <v-card-actions class="justify-center flex-wrap">
+                                <v-card-actions class="justify-center flex-wrap mobile-action-grid">
                                     <v-btn
                                         color="success"
-                                        x-large
+                                        :x-large="$vuetify.breakpoint.mdAndUp"
+                                        :large="$vuetify.breakpoint.smAndDown"
                                         class="ma-2"
                                         @click="playerHit"
                                         :loading="processing"
                                     >
-                                        <v-icon left large>mdi-plus</v-icon>
-                                        {{ t('要牌 (Hit)', 'Hit') }}
+                                        <v-icon left>mdi-plus</v-icon>
+                                        {{ t('要牌', 'Hit') }}
                                     </v-btn>
 
                                     <v-btn
                                         color="error"
-                                        x-large
+                                        :x-large="$vuetify.breakpoint.mdAndUp"
+                                        :large="$vuetify.breakpoint.smAndDown"
                                         class="ma-2"
                                         @click="playerStand"
                                         :loading="processing"
                                     >
-                                        <v-icon left large>mdi-hand-back-left</v-icon>
-                                        {{ t('停牌 (Stand)', 'Stand') }}
+                                        <v-icon left>mdi-hand-back-left</v-icon>
+                                        {{ t('停牌', 'Stand') }}
                                     </v-btn>
 
                                     <v-btn
                                         color="warning"
-                                        x-large
+                                        :x-large="$vuetify.breakpoint.mdAndUp"
+                                        :large="$vuetify.breakpoint.smAndDown"
                                         class="ma-2"
                                         @click="playerDouble"
                                         :disabled="!canDouble"
                                         :loading="processing"
                                     >
-                                        <v-icon left large>mdi-numeric-2-box</v-icon>
-                                        {{ t('加倍 (Double)', 'Double') }}
+                                        <v-icon left>mdi-numeric-2-box</v-icon>
+                                        {{ t('加倍', 'Double') }}
                                     </v-btn>
 
                                     <v-btn
                                         color="info"
-                                        x-large
+                                        :x-large="$vuetify.breakpoint.mdAndUp"
+                                        :large="$vuetify.breakpoint.smAndDown"
                                         class="ma-2"
                                         @click="getAIAdvice"
                                         :loading="aiThinking"
                                     >
-                                        <v-icon left large>mdi-robot</v-icon>
-                                        {{ t('AI建议', 'AI Advice') }}
+                                        <v-icon left>mdi-robot</v-icon>
+                                        {{ t('AI建议', 'AI') }}
                                     </v-btn>
                                 </v-card-actions>
                             </v-card>
@@ -690,37 +872,32 @@
                     </v-row>
 
                     <!-- AI建议面板 -->
-                    <v-row v-if="aiDecision" class="mt-4">
+                    <v-row v-if="aiDecision" class="mt-2 mt-md-4">
                         <v-col cols="12">
-                            <v-card class="ai-panel pa-6">
-                                <v-card-title>
-                                    <v-icon class="mr-3" color="success" large>mdi-robot</v-icon>
-                                    <span class="text-h5">{{ t('AI助手建议', 'AI Recommendation') }}</span>
+                            <v-card class="ai-panel pa-3 pa-md-6">
+                                <v-card-title class="pa-3 pa-md-4" style="flex-wrap: wrap; gap: 8px;">
+                                    <v-icon class="mr-2" color="success">mdi-robot</v-icon>
+                                    <span class="text-h5">{{ t('AI建议', 'AI Advice') }}</span>
                                     <v-spacer></v-spacer>
-                                    <v-chip :color="confidenceColor" large>
-                                        {{ t('信心度', 'Confidence') }}: {{ aiDecision.confidence }}
+                                    <v-chip :color="confidenceColor" :small="$vuetify.breakpoint.smAndDown">
+                                        {{ aiDecision.confidence }}
                                     </v-chip>
                                 </v-card-title>
-                                <v-card-text>
-                                    <v-row align="center">
-                                        <v-col cols="12" md="4" class="text-center">
-                                            <v-chip color="primary" x-large>
-                                                <v-icon left large>mdi-target</v-icon>
-                                                {{ aiDecision.action }}
-                                            </v-chip>
-                                        </v-col>
-                                        <v-col cols="12" md="8">
-                                            <div class="text-h6 mb-2">{{ t('分析依据：', 'Analysis:') }}</div>
-                                            <div class="text-body-1">{{ aiDecision.reasoning }}</div>
-                                        </v-col>
-                                    </v-row>
+                                <v-card-text class="pa-3 pa-md-4">
+                                    <div class="text-center mb-3">
+                                        <v-chip color="primary" :x-large="$vuetify.breakpoint.mdAndUp" :large="$vuetify.breakpoint.smAndDown">
+                                            <v-icon left>mdi-target</v-icon>
+                                            {{ aiDecision.action }}
+                                        </v-chip>
+                                    </div>
+                                    <div class="text-body-1">{{ aiDecision.reasoning }}</div>
                                 </v-card-text>
-                                <v-card-actions>
-                                    <v-btn color="success" large @click="followAIAdvice">
+                                <v-card-actions class="pa-3 pa-md-4">
+                                    <v-btn color="success" :small="$vuetify.breakpoint.xs" @click="followAIAdvice">
                                         <v-icon left>mdi-check</v-icon>
-                                        {{ t('采用建议', 'Follow Advice') }}
+                                        {{ t('采用', 'Follow') }}
                                     </v-btn>
-                                    <v-btn text large @click="aiDecision = null">
+                                    <v-btn text :small="$vuetify.breakpoint.xs" @click="aiDecision = null">
                                         <v-icon left>mdi-close</v-icon>
                                         {{ t('忽略', 'Dismiss') }}
                                     </v-btn>
@@ -730,23 +907,23 @@
                     </v-row>
 
                     <!-- 结果显示 -->
-                    <v-row v-if="gameOver" class="mt-4">
+                    <v-row v-if="gameOver" class="mt-2 mt-md-4">
                         <v-col cols="12">
-                            <v-card :class="['pa-8', 'text-center', 'result-celebration', resultColor]">
-                                <v-card-title class="white--text justify-center">
-                                    <v-icon x-large class="mr-4" color="white">{{ resultIcon }}</v-icon>
+                            <v-card :class="['pa-4', 'pa-md-8', 'text-center', 'result-celebration', resultColor]">
+                                <v-card-title class="white--text justify-center" style="flex-wrap: wrap;">
+                                    <v-icon :x-large="$vuetify.breakpoint.mdAndUp" :large="$vuetify.breakpoint.smAndDown" class="mr-2 mr-md-4" color="white">{{ resultIcon }}</v-icon>
                                     <span class="display-1">{{ resultText }}</span>
                                 </v-card-title>
                                 <v-card-subtitle class="white--text">
-                                    <div class="text-h4 mt-4">
+                                    <div class="text-h4 mt-2 mt-md-4">
                                         {{ t('盈亏', 'P/L') }}: <span class="white--text">
                                             {{ gameResult.profit >= 0 ? '+' : '' }}${{ gameResult.profit }}
                                         </span>
                                     </div>
                                 </v-card-subtitle>
-                                <v-card-actions class="justify-center mt-6">
-                                    <v-btn color="#00f0ff" x-large dark @click="nextHand" class="black--text">
-                                        <v-icon left large>mdi-play</v-icon>
+                                <v-card-actions class="justify-center mt-3 mt-md-6">
+                                    <v-btn color="#00f0ff" :x-large="$vuetify.breakpoint.mdAndUp" :large="$vuetify.breakpoint.smAndDown" dark @click="nextHand" class="black--text">
+                                        <v-icon left>mdi-play</v-icon>
                                         {{ t('下一局', 'Next Hand') }}
                                     </v-btn>
                                 </v-card-actions>
@@ -757,7 +934,7 @@
             </v-container>
 
             <!-- 统计对话框 -->
-            <v-dialog v-model="showStats" max-width="800">
+            <v-dialog v-model="showStats" :max-width="$vuetify.breakpoint.smAndDown ? '100%' : 800" :fullscreen="$vuetify.breakpoint.xs" scrollable>
                 <v-card>
                     <v-card-title class="neon-cyan">
                         <v-icon class="mr-3" color="#00f0ff">mdi-chart-box</v-icon>
