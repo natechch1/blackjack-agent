@@ -670,6 +670,11 @@
                         {{ winRate }}% {{ t('胜率', 'Win Rate') }}
                     </v-chip>
 
+                    <v-chip x-small :color="serverMode === 'full' ? 'purple' : 'grey'" class="mr-2" :outlined="serverMode !== 'full'" :dark="serverMode === 'full'">
+                        <v-icon x-small left v-if="serverMode === 'full'">mdi-brain</v-icon>
+                        {{ serverMode === 'full' ? 'FULL' : 'LITE' }}
+                    </v-chip>
+
                     <v-btn icon small @click="toggleLang" class="mr-1">
                         <span style="font-size:11px;font-weight:bold;color:#00f0ff">{{ lang === 'zh' ? 'EN' : '中文' }}</span>
                     </v-btn>
@@ -838,7 +843,7 @@
                                         </v-col>
                                         <v-col cols="6" class="text-center">
                                             <div :class="['text-h3', totalProfit >= 0 ? 'neon-green' : 'neon-red']">
-                                                {{ totalProfit >= 0 ? '+' : '' }}${{ totalProfit }}
+                                                {{ totalProfit >= 0 ? '+$' : '-$' }}{{ Math.abs(totalProfit) }}
                                             </div>
                                             <div class="text-subtitle1">{{ t('总盈亏', 'Total P/L') }}</div>
                                         </v-col>
@@ -927,6 +932,10 @@
                                 <v-card-title class="pa-3 pa-md-4" style="flex-wrap: wrap; gap: 8px;">
                                     <v-icon class="mr-2" color="success">mdi-robot</v-icon>
                                     <span class="text-h5">{{ t('AI建议', 'AI Advice') }}</span>
+                                    <v-chip v-if="aiDecision.responseMode === 'full'" x-small color="purple" class="ml-2" dark>
+                                        <v-icon x-small left>mdi-brain</v-icon>FULL
+                                    </v-chip>
+                                    <v-chip v-else x-small color="grey" class="ml-2" outlined>LITE</v-chip>
                                     <v-spacer></v-spacer>
                                     <v-chip :color="confidenceColor" :small="$vuetify.breakpoint.smAndDown">
                                         {{ aiDecision.confidence }}
@@ -939,7 +948,40 @@
                                             {{ aiDecision.action }}
                                         </v-chip>
                                     </div>
-                                    <div class="text-body-1">{{ aiDecision.reasoning }}</div>
+                                    <div class="text-body-1 mb-3">{{ aiDecision.reasoning }}</div>
+
+                                    <!-- Full Mode: tool details -->
+                                    <div v-if="aiDecision.toolsUsed" style="border-top: 1px solid rgba(0,240,255,0.15); padding-top: 12px;">
+                                        <div class="text-caption neon-cyan mb-2">
+                                            <v-icon x-small color="#00f0ff">mdi-wrench</v-icon>
+                                            {{ t('AI 工具链输出', 'AI Tool Chain Output') }}
+                                        </div>
+                                        <v-row dense>
+                                            <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.card_counting">
+                                                <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.15); border-radius: 6px; padding: 8px;">
+                                                    <div class="text-caption neon-cyan">Hi-Lo {{ t('算牌', 'Count') }}</div>
+                                                    <div class="text-body-2">RC: {{ aiDecision.toolsUsed.card_counting.running_count }}</div>
+                                                    <div class="text-body-2">TC: {{ aiDecision.toolsUsed.card_counting.true_count }}</div>
+                                                    <div class="text-caption" style="opacity:0.7">{{ aiDecision.toolsUsed.card_counting.cards_seen }} {{ t('张已见', 'seen') }}</div>
+                                                </div>
+                                            </v-col>
+                                            <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.basic_strategy">
+                                                <div style="background: rgba(57,255,20,0.05); border: 1px solid rgba(57,255,20,0.15); border-radius: 6px; padding: 8px;">
+                                                    <div class="text-caption neon-green">{{ t('基本策略', 'Basic Strategy') }}</div>
+                                                    <div class="text-body-2">{{ aiDecision.toolsUsed.basic_strategy.explanation }}</div>
+                                                    <div class="text-caption" style="opacity:0.7">{{ t('置信度', 'Confidence') }}: {{ (aiDecision.toolsUsed.basic_strategy.confidence * 100).toFixed(0) }}%</div>
+                                                </div>
+                                            </v-col>
+                                            <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.monte_carlo">
+                                                <div style="background: rgba(255,0,170,0.05); border: 1px solid rgba(255,0,170,0.15); border-radius: 6px; padding: 8px;">
+                                                    <div class="text-caption neon-magenta">{{ t('蒙特卡洛', 'Monte Carlo') }}</div>
+                                                    <div v-for="(v, k) in aiDecision.toolsUsed.monte_carlo" :key="k" class="text-body-2">
+                                                        {{ k }}: EV={{ v.ev }} ({{ v.win_prob }}%)
+                                                    </div>
+                                                </div>
+                                            </v-col>
+                                        </v-row>
+                                    </div>
                                 </v-card-text>
                                 <v-card-actions class="pa-3 pa-md-4">
                                     <v-btn color="success" :small="$vuetify.breakpoint.xs" @click="followAIAdvice">
@@ -966,7 +1008,7 @@
                                 <v-card-subtitle class="white--text">
                                     <div class="text-h4 mt-2 mt-md-4">
                                         {{ t('盈亏', 'P/L') }}: <span class="white--text">
-                                            {{ gameResult.profit >= 0 ? '+' : '' }}${{ gameResult.profit }}
+                                            {{ gameResult.profit >= 0 ? '+$' : '-$' }}{{ Math.abs(gameResult.profit) }}
                                         </span>
                                     </div>
                                 </v-card-subtitle>
@@ -1036,7 +1078,7 @@
                             </template>
                             <template v-slot:item.profit="{ item }">
                                 <span :class="item.profit >= 0 ? 'success--text' : 'error--text'">
-                                    {{ item.profit >= 0 ? '+' : '' }}${{ item.profit }}
+                                    {{ item.profit >= 0 ? '+$' : '-$' }}{{ Math.abs(item.profit) }}
                                 </span>
                             </template>
                         </v-data-table>
@@ -1159,7 +1201,7 @@
                                                 <v-col cols="12" md="3">
                                                     <div class="text-center">
                                                         <div class="text-h3" :class="totalProfit >= 0 ? 'success--text' : 'error--text'">
-                                                            {{ totalProfit >= 0 ? '+' : '' }}${{ totalProfit }}
+                                                            {{ totalProfit >= 0 ? '+$' : '-$' }}{{ Math.abs(totalProfit) }}
                                                         </div>
                                                         <div class="text-subtitle2">{{ t('总盈亏', 'Total P/L') }}</div>
                                                     </div>
@@ -1317,6 +1359,9 @@
                     initialChips: 300
                 },
 
+                // 服务器模式
+                serverMode: 'lite',
+
                 // 游戏状态
                 gameId: null,
                 playerChips: 300,
@@ -1330,6 +1375,7 @@
                 firstAction: null,
                 showDealerTotal: false,
                 gameResult: null,
+                baseBet: 25,
 
                 // 游戏历史
                 gameHistory: [],
@@ -1800,6 +1846,7 @@
                     try {
                         const response = await axios.post('/api/game/start', this.gameSettings);
                         this.gameId = response.data.game_id;
+                        this.serverMode = response.data.mode || 'lite';
                         this.playerChips = this.gameSettings.initialChips;
                         this.currentBet = await Math.min(25, this.playerChips);
                         this.gameHistory = [];
@@ -1819,6 +1866,7 @@
                         return;
                     }
                     this.dealing = true;
+                    this.baseBet = this.currentBet;
                     this.playerChips -= this.currentBet;
                     this.resetHand();
                     this.aiDecision = null;
@@ -1854,6 +1902,8 @@
                         this.playerTotal = this.calculateHandValue(this.playerCards);
                         if (this.playerTotal > 21) {
                             this.showMessage(this.t('💥 爆牌！', '💥 Bust!'), 'error');
+                            this.showDealerTotal = true;
+                            this.dealerTotal = this.calculateHandValue(this.dealerCards);
                             await this.sleep(1000);
                             this.finishHand();
                         }
@@ -1891,6 +1941,8 @@
                             await this.dealerPlay();
                         } else {
                             this.showMessage(this.t('💥 爆牌！', '💥 Bust!'), 'error');
+                            this.showDealerTotal = true;
+                            this.dealerTotal = this.calculateHandValue(this.dealerCards);
                             this.finishHand();
                         }
                     } catch (error) {
@@ -1909,7 +1961,10 @@
                             dealer_upcard: this.dealerCards[0],
                             current_bet: this.currentBet
                         });
-                        this.aiDecision = this.translateAIDecision(response.data.decision);
+                        const dec = response.data.decision;
+                        this.aiDecision = this.translateAIDecision(dec);
+                        this.aiDecision.toolsUsed = dec.tools_used || null;
+                        this.aiDecision.responseMode = response.data.mode || 'lite';
                     } catch (error) {
                         console.error('AI decision failed:', error);
                         this.showMessage(this.t('🤖 AI分析暂时不可用', '🤖 AI analysis unavailable'), 'warning');
@@ -1942,9 +1997,32 @@
                     if (!isZh) {
                         action = actionMap[action] || action;
                         confidence = confidenceMap[confidence] || confidence;
-                        reasoning = reasoningMap[reasoning] || this.translateDealerReasoning(reasoning);
+                        // For full mode, reasoning is already detailed; for lite, translate
+                        if (decision.tools_used) {
+                            reasoning = this.translateFullReasoning(decision);
+                        } else {
+                            reasoning = reasoningMap[reasoning] || this.translateDealerReasoning(reasoning);
+                        }
                     }
                     return { action, confidence, reasoning };
+                },
+
+                translateFullReasoning(decision) {
+                    const tools = decision.tools_used;
+                    const parts = [];
+                    if (tools.basic_strategy) {
+                        parts.push(`Strategy: ${tools.basic_strategy.explanation}`);
+                    }
+                    if (tools.card_counting) {
+                        const cc = tools.card_counting;
+                        parts.push(`Hi-Lo TC: ${cc.true_count} (${cc.risk})`);
+                    }
+                    if (tools.monte_carlo) {
+                        const mc = tools.monte_carlo;
+                        const mcParts = Object.entries(mc).map(([k, v]) => `${k}: EV=${v.ev} Win=${v.win_prob}%`);
+                        parts.push(`Monte Carlo: ${mcParts.join(', ')}`);
+                    }
+                    return parts.join(' | ');
                 },
 
                 translateDealerReasoning(text) {
@@ -2052,6 +2130,7 @@
                 },
 
                 nextHand() {
+                    this.currentBet = this.baseBet;
                     this.resetHand();
                     this.currentBet = Math.min(this.currentBet, this.playerChips);
                     if (this.playerChips <= 0) {
