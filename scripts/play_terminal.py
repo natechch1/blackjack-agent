@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 # 添加项目路径
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
@@ -684,7 +684,7 @@ class TerminalBlackjackSimulator:
         models = []
         
         # 扫描混合训练模型
-        hybrid_dir = Path("models/hybrid_training")
+        hybrid_dir = project_root / "models" / "hybrid_training"
         if hybrid_dir.exists():
             for model_file in hybrid_dir.glob("hybrid_model_*.json"):
                 try:
@@ -703,7 +703,7 @@ class TerminalBlackjackSimulator:
                     continue
         
         # 扫描数值训练模型
-        numerical_dir = Path("models/numerical_training")
+        numerical_dir = project_root / "models" / "numerical_training"
         if numerical_dir.exists():
             for model_file in numerical_dir.glob("numerical_model_*.json"):
                 try:

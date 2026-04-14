@@ -8,15 +8,18 @@ import time
 import os
 import subprocess
 import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
+server_py = str(project_root / "server.py")
 
 def start_simulator():
     print("🎮 启动21点游戏模拟器...")
     print("🌐 游戏地址: http://localhost:8888")
-    print("� 访问权限: 仅本机访问")
-    print("�🔧 按 Ctrl+C 停止服务器")
+    print("🔧 按 Ctrl+C 停止服务器")
     print("💡 如需局域网访问，请使用: python3 server.py --public")
     print()
-    
+
     # 延迟2秒后自动打开浏览器
     def open_browser():
         time.sleep(2)
@@ -26,14 +29,15 @@ def start_simulator():
         except Exception as e:
             print(f"⚠️  无法自动打开浏览器: {e}")
             print("💡 请手动访问: http://localhost:8888")
-    
+
     browser_thread = threading.Thread(target=open_browser)
     browser_thread.daemon = True
     browser_thread.start()
-    
-    # 启动服务器
+
+    # 启动服务器 (from project root so static files resolve)
     try:
-        os.execv(sys.executable, [sys.executable, 'server.py'])
+        os.chdir(project_root)
+        os.execv(sys.executable, [sys.executable, server_py])
     except KeyboardInterrupt:
         print("\n🛑 游戏已停止")
     except Exception as e:

@@ -145,28 +145,28 @@ LOG_LEVEL=INFO
 
 ```bash
 # Demo (3 min) — quick test
-python3 hybrid_train.py --mode demo
+python3 scripts/train_hybrid.py --mode demo
 
 # Standard (15 min) — recommended
-python3 hybrid_train.py --mode standard
+python3 scripts/train_hybrid.py --mode standard
 
 # Deep (30 min) — best performance
-python3 hybrid_train.py --mode deep
+python3 scripts/train_hybrid.py --mode deep
 ```
 
 #### 5. Play
 
 ```bash
 # Web UI (recommended) — opens http://localhost:8888
-./play
+python3 scripts/start_server.py
 
 # Terminal mode
-python3 terminal_simulator.py
+python3 scripts/play_terminal.py
 
 # Benchmark a trained model
-python3 hybrid_play.py --mode list                       # list trained models
-python3 hybrid_play.py --mode benchmark --episodes 1000  # run benchmark
-python3 hybrid_play.py --mode play --rounds 10           # interactive play
+python3 scripts/play_hybrid.py --mode list                       # list trained models
+python3 scripts/play_hybrid.py --mode benchmark --episodes 1000  # run benchmark
+python3 scripts/play_hybrid.py --mode play --rounds 10           # interactive play
 ```
 
 ## How to Play
@@ -318,16 +318,16 @@ Stage 1: Numerical Optimization          Stage 2: LLM Fine-tuning          Stage
 
 ```
 blackjack-agent/
-├── play                        # One-click launcher script
 ├── server.py                   # Flask web server + REST API
 ├── index.html                  # Vue.js cyberpunk game UI
-├── start.py                    # Auto-launch with browser open
-├── hybrid_train.py             # 3-stage hybrid training pipeline  [Full]
-├── hybrid_play.py              # Game player & benchmarker         [Full]
-├── numerical_train.py          # Pure numerical optimization       [Full]
-├── terminal_simulator.py       # Terminal interactive game         [Full]
 ├── requirements-deploy.txt     # Lite Edition dependencies (3 packages)
 ├── requirements.txt            # Full Edition dependencies (20+ packages)
+├── scripts/                    # Runnable scripts
+│   ├── start_server.py         # Auto-launch with browser open
+│   ├── train_hybrid.py         # 3-stage hybrid training pipeline  [Full]
+│   ├── train_numerical.py      # Pure numerical optimization       [Full]
+│   ├── play_hybrid.py          # Game player & benchmarker         [Full]
+│   └── play_terminal.py        # Terminal interactive game         [Full]
 ├── src/
 │   ├── agent/
 │   │   └── blackjack_agent.py  # LangChain ReAct agent (6 tools)  [Full]
@@ -509,28 +509,28 @@ LOG_LEVEL=INFO
 
 ```bash
 # 演示模式（3 分钟）— 快速体验
-python3 hybrid_train.py --mode demo
+python3 scripts/train_hybrid.py --mode demo
 
 # 标准模式（15 分钟）— 推荐
-python3 hybrid_train.py --mode standard
+python3 scripts/train_hybrid.py --mode standard
 
 # 深度模式（30 分钟）— 最佳性能
-python3 hybrid_train.py --mode deep
+python3 scripts/train_hybrid.py --mode deep
 ```
 
 #### 5. 开始游戏
 
 ```bash
 # Web 界面（推荐）— 自动打开 http://localhost:8888
-./play
+python3 scripts/start_server.py
 
 # 终端模式
-python3 terminal_simulator.py
+python3 scripts/play_terminal.py
 
 # 基准测试
-python3 hybrid_play.py --mode list                       # 查看已训练模型
-python3 hybrid_play.py --mode benchmark --episodes 1000  # 运行基准测试
-python3 hybrid_play.py --mode play --rounds 10           # 交互式游戏
+python3 scripts/play_hybrid.py --mode list                       # 查看已训练模型
+python3 scripts/play_hybrid.py --mode benchmark --episodes 1000  # 运行基准测试
+python3 scripts/play_hybrid.py --mode play --rounds 10           # 交互式游戏
 ```
 
 ## 游玩指南
@@ -681,16 +681,16 @@ python3 hybrid_play.py --mode play --rounds 10           # 交互式游戏
 
 ```
 blackjack-agent/
-├── play                        # 一键启动脚本
 ├── server.py                   # Flask 服务器 + REST API
 ├── index.html                  # Vue.js 赛博朋克游戏界面
-├── start.py                    # 自动启动并打开浏览器
-├── hybrid_train.py             # 三阶段混合训练流水线          [满血版]
-├── hybrid_play.py              # 游戏与基准测试               [满血版]
-├── numerical_train.py          # 纯数值优化                  [满血版]
-├── terminal_simulator.py       # 终端交互游戏                [满血版]
 ├── requirements-deploy.txt     # 轻量版依赖（3 个包）
 ├── requirements.txt            # 满血版依赖（20+ 个包）
+├── scripts/                    # 可执行脚本
+│   ├── start_server.py         # 自动启动并打开浏览器
+│   ├── train_hybrid.py         # 三阶段混合训练流水线          [满血版]
+│   ├── train_numerical.py      # 纯数值优化                  [满血版]
+│   ├── play_hybrid.py          # 游戏与基准测试               [满血版]
+│   └── play_terminal.py        # 终端交互游戏                [满血版]
 ├── src/
 │   ├── agent/
 │   │   └── blackjack_agent.py  # LangChain ReAct 智能体（6 工具） [满血版]

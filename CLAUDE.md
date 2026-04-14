@@ -57,14 +57,16 @@ blackjack-agent/
 │   ├── numerical_training/       # Numerical-only model files
 │   ├── basic_strategy.json
 │   └── overrides.json
-├── hybrid_train.py               # 3-stage training orchestrator
-├── hybrid_play.py                # Game player & benchmarker
-├── numerical_train.py            # Pure numerical optimization
-├── terminal_simulator.py         # Interactive terminal game
-├── server.py                     # Flask web server
-├── start.py                      # One-click launcher
-├── index.html                    # Web UI
-└── requirements.txt
+├── server.py                     # Flask web server (Lite + Full auto-detect)
+├── index.html                    # Vue.js cyberpunk web UI
+├── scripts/
+│   ├── start_server.py           # One-click launcher (opens browser)
+│   ├── train_hybrid.py           # 3-stage training orchestrator
+│   ├── train_numerical.py        # Pure numerical optimization
+│   ├── play_hybrid.py            # Game player & benchmarker
+│   └── play_terminal.py          # Interactive terminal game
+├── requirements.txt              # Full Edition dependencies
+└── requirements-deploy.txt       # Lite Edition dependencies (Render)
 ```
 
 ## Key Components
@@ -118,20 +120,20 @@ pip install -r requirements.txt
 ollama pull deepseek-r1:1.5b
 
 # Train
-python3 hybrid_train.py --mode demo        # quick test
-python3 hybrid_train.py --mode standard    # recommended
-python3 hybrid_train.py --mode deep        # thorough
+python3 scripts/train_hybrid.py --mode demo        # quick test
+python3 scripts/train_hybrid.py --mode standard    # recommended
+python3 scripts/train_hybrid.py --mode deep        # thorough
 
 # Play
-python3 hybrid_play.py --mode list                      # list trained models
-python3 hybrid_play.py --mode play --rounds 10          # interactive
-python3 hybrid_play.py --mode benchmark --episodes 1000 # benchmark
+python3 scripts/play_hybrid.py --mode list                      # list trained models
+python3 scripts/play_hybrid.py --mode play --rounds 10          # interactive
+python3 scripts/play_hybrid.py --mode benchmark --episodes 1000 # benchmark
 
 # Web UI (localhost:8888)
-python3 start.py
+python3 scripts/start_server.py
 
 # Terminal game
-python3 terminal_simulator.py
+python3 scripts/play_terminal.py
 ```
 
 ## Performance Targets

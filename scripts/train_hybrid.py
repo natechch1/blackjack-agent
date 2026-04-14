@@ -15,7 +15,7 @@ from typing import Dict, Any, List, Tuple
 from datetime import datetime
 
 # 添加项目路径
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 class HybridTrainer:
@@ -281,7 +281,7 @@ class HybridTrainer:
     def _save_hybrid_results(self):
         """保存混合训练结果"""
         try:
-            results_dir = Path("models/hybrid_training")
+            results_dir = project_root / "models" / "hybrid_training"
             results_dir.mkdir(parents=True, exist_ok=True)
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

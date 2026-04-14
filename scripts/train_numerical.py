@@ -14,7 +14,7 @@ from typing import Dict, Any, List, Tuple
 from datetime import datetime
 
 # 添加项目路径
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # 预先导入 Action 类
@@ -228,7 +228,7 @@ def save_numerical_results(thresholds, performance, total_improvement, improveme
     """
     try:
         # 创建结果目录
-        results_dir = Path("models/numerical_training")
+        results_dir = project_root / "models" / "numerical_training"
         results_dir.mkdir(parents=True, exist_ok=True)
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
