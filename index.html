@@ -948,40 +948,51 @@
                                             {{ aiDecision.action }}
                                         </v-chip>
                                     </div>
-                                    <div class="text-body-1 mb-3">{{ aiDecision.reasoning }}</div>
-
-                                    <!-- Full Mode: tool details -->
-                                    <div v-if="aiDecision.toolsUsed" style="border-top: 1px solid rgba(0,240,255,0.15); padding-top: 12px;">
-                                        <div class="text-caption neon-cyan mb-2">
-                                            <v-icon x-small color="#00f0ff">mdi-wrench</v-icon>
-                                            {{ t('AI 工具链输出', 'AI Tool Chain Output') }}
-                                        </div>
-                                        <v-row dense>
-                                            <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.card_counting">
-                                                <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.15); border-radius: 6px; padding: 8px;">
-                                                    <div class="text-caption neon-cyan">Hi-Lo {{ t('算牌', 'Count') }}</div>
-                                                    <div class="text-body-2">RC: {{ aiDecision.toolsUsed.card_counting.running_count }}</div>
-                                                    <div class="text-body-2">TC: {{ aiDecision.toolsUsed.card_counting.true_count }}</div>
-                                                    <div class="text-caption" style="opacity:0.7">{{ aiDecision.toolsUsed.card_counting.cards_seen }} {{ t('张已见', 'seen') }}</div>
-                                                </div>
-                                            </v-col>
-                                            <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.basic_strategy">
-                                                <div style="background: rgba(57,255,20,0.05); border: 1px solid rgba(57,255,20,0.15); border-radius: 6px; padding: 8px;">
-                                                    <div class="text-caption neon-green">{{ t('基本策略', 'Basic Strategy') }}</div>
-                                                    <div class="text-body-2">{{ aiDecision.toolsUsed.basic_strategy.explanation }}</div>
-                                                    <div class="text-caption" style="opacity:0.7">{{ t('置信度', 'Confidence') }}: {{ (aiDecision.toolsUsed.basic_strategy.confidence * 100).toFixed(0) }}%</div>
-                                                </div>
-                                            </v-col>
-                                            <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.monte_carlo">
-                                                <div style="background: rgba(255,0,170,0.05); border: 1px solid rgba(255,0,170,0.15); border-radius: 6px; padding: 8px;">
-                                                    <div class="text-caption neon-magenta">{{ t('蒙特卡洛', 'Monte Carlo') }}</div>
-                                                    <div v-for="(v, k) in aiDecision.toolsUsed.monte_carlo" :key="k" class="text-body-2">
-                                                        {{ k }}: EV={{ v.ev }} ({{ v.win_prob }}%)
-                                                    </div>
-                                                </div>
-                                            </v-col>
-                                        </v-row>
+                                    <!-- Friendly tip (Full Mode) -->
+                                    <div v-if="aiDecision.tip" class="text-body-1 mb-3" style="white-space: pre-line; line-height: 1.6;">
+                                        {{ lang === 'zh' ? aiDecision.tip.zh : aiDecision.tip.en }}
                                     </div>
+                                    <!-- Lite Mode reasoning -->
+                                    <div v-else class="text-body-1 mb-3">{{ aiDecision.reasoning }}</div>
+
+                                    <!-- Full Mode: tool details (collapsible) -->
+                                    <v-expansion-panels v-if="aiDecision.toolsUsed" flat>
+                                        <v-expansion-panel style="background: transparent !important;">
+                                            <v-expansion-panel-header class="pa-0" style="min-height: 32px;">
+                                                <div class="text-caption neon-cyan">
+                                                    <v-icon x-small color="#00f0ff">mdi-wrench</v-icon>
+                                                    {{ t('查看 AI 工具链详细数据', 'View AI Tool Chain Details') }}
+                                                </div>
+                                            </v-expansion-panel-header>
+                                            <v-expansion-panel-content>
+                                                <v-row dense class="mt-1">
+                                                    <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.card_counting">
+                                                        <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.15); border-radius: 6px; padding: 8px;">
+                                                            <div class="text-caption neon-cyan">Hi-Lo {{ t('算牌系统', 'Card Counting') }}</div>
+                                                            <div class="text-body-2">{{ t('流水计数', 'Running Count') }}: {{ aiDecision.toolsUsed.card_counting.running_count }}</div>
+                                                            <div class="text-body-2">{{ t('真实计数', 'True Count') }}: {{ aiDecision.toolsUsed.card_counting.true_count }}</div>
+                                                            <div class="text-caption" style="opacity:0.7">{{ t('已看到', 'Seen') }} {{ aiDecision.toolsUsed.card_counting.cards_seen }} {{ t('张牌', 'cards') }}</div>
+                                                        </div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.basic_strategy">
+                                                        <div style="background: rgba(57,255,20,0.05); border: 1px solid rgba(57,255,20,0.15); border-radius: 6px; padding: 8px;">
+                                                            <div class="text-caption neon-green">{{ t('基本策略表', 'Basic Strategy Table') }}</div>
+                                                            <div class="text-body-2">{{ t('推荐', 'Recommends') }}: {{ lang === 'zh' ? aiDecision.toolsUsed.basic_strategy.action_zh : aiDecision.toolsUsed.basic_strategy.action_en }}</div>
+                                                            <div class="text-caption" style="opacity:0.7">{{ t('置信度', 'Confidence') }}: {{ (aiDecision.toolsUsed.basic_strategy.confidence * 100).toFixed(0) }}%</div>
+                                                        </div>
+                                                    </v-col>
+                                                    <v-col cols="12" sm="4" v-if="aiDecision.toolsUsed.monte_carlo">
+                                                        <div style="background: rgba(255,0,170,0.05); border: 1px solid rgba(255,0,170,0.15); border-radius: 6px; padding: 8px;">
+                                                            <div class="text-caption neon-magenta">{{ t('蒙特卡洛模拟', 'Monte Carlo Sim') }} (500{{ t('局', 'x') }})</div>
+                                                            <div v-for="(v, k) in aiDecision.toolsUsed.monte_carlo" :key="k" class="text-body-2">
+                                                                {{ mcActionLabel(k) }}: {{ t('胜率', 'Win') }} {{ v.win_prob }}%{{ v.ev >= 0 ? ' ✓' : '' }}
+                                                            </div>
+                                                        </div>
+                                                    </v-col>
+                                                </v-row>
+                                            </v-expansion-panel-content>
+                                        </v-expansion-panel>
+                                    </v-expansion-panels>
                                 </v-card-text>
                                 <v-card-actions class="pa-3 pa-md-4">
                                     <v-btn color="success" :small="$vuetify.breakpoint.xs" @click="followAIAdvice">
@@ -1964,6 +1975,7 @@
                         const dec = response.data.decision;
                         this.aiDecision = this.translateAIDecision(dec);
                         this.aiDecision.toolsUsed = dec.tools_used || null;
+                        this.aiDecision.tip = dec.tip || null;
                         this.aiDecision.responseMode = response.data.mode || 'lite';
                     } catch (error) {
                         console.error('AI decision failed:', error);
@@ -2033,6 +2045,12 @@
                         return `Dealer shows ${m[1]}, ${strength} upcard, ${action}`;
                     }
                     return text;
+                },
+
+                mcActionLabel(action) {
+                    const zh = {'hit': '要牌', 'stand': '停牌', 'double': '加倍', 'split': '分牌', 'surrender': '投降'};
+                    const en = {'hit': 'Hit', 'stand': 'Stand', 'double': 'Double', 'split': 'Split', 'surrender': 'Surrender'};
+                    return this.lang === 'zh' ? (zh[action] || action) : (en[action] || action);
                 },
 
                 followAIAdvice() {

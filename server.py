@@ -141,24 +141,36 @@ def _get_full_decision(player_cards, dealer_upcard, game_session):
 
     # Build rich reasoning
     action_zh_map = {'hit': '要牌', 'stand': '停牌', 'double': '加倍', 'split': '分牌', 'surrender': '投降'}
+    action_en_map = {'hit': 'Hit', 'stand': 'Stand', 'double': 'Double Down', 'split': 'Split', 'surrender': 'Surrender'}
     action_zh = action_zh_map.get(final_action, final_action)
-
-    # Reasoning parts
-    reasoning_parts = [f"基本策略: {bs_explanation}"]
-    reasoning_parts.append(f"Hi-Lo真实计数: {true_count:.1f} ({risk_assessment})")
-    if mc_results:
-        mc_summary = ", ".join([f"{k}: EV={v['ev']:.3f} 胜率={v['win_prob']}%" for k, v in mc_results.items()])
-        reasoning_parts.append(f"蒙特卡洛模拟: {mc_summary}")
 
     confidence_zh = '高' if bs_confidence >= 0.9 else ('中' if bs_confidence >= 0.7 else '低')
 
+    # --- Plain-language tip for new players ---
+    player_total = player_hand.value
+    dealer_value = dealer_card.value
+    has_soft = player_hand.is_soft
+
+    # Best MC action for reference
+    best_mc_action = None
+    if mc_results:
+        best_mc_action = max(mc_results, key=lambda k: mc_results[k]['ev'])
+
+    tip_zh, tip_en = _build_friendly_tip(
+        final_action, player_total, dealer_value, has_soft,
+        true_count, mc_results, best_mc_action
+    )
+
     return {
         'action': action_zh,
-        'reasoning': ' | '.join(reasoning_parts),
+        'reasoning': tip_zh,
         'confidence': confidence_zh,
+        'tip': {'zh': tip_zh, 'en': tip_en},
         'tools_used': {
             'basic_strategy': {
                 'action': final_action,
+                'action_zh': action_zh,
+                'action_en': action_en_map.get(final_action, final_action),
                 'explanation': bs_explanation,
                 'confidence': round(bs_confidence, 2)
             },
@@ -171,6 +183,94 @@ def _get_full_decision(player_cards, dealer_upcard, game_session):
             'monte_carlo': mc_results
         }
     }
+
+
+def _build_friendly_tip(action, player_total, dealer_value, has_soft, true_count, mc_results, best_mc_action):
+    """Generate a plain-language tip explaining *why* this action is recommended."""
+
+    # --- Chinese ---
+    if action == 'hit':
+        if player_total <= 11:
+            zh = f"你的点数只有 {player_total}，不可能爆牌，放心要牌。"
+        elif has_soft:
+            zh = f"你有一张 A（软牌 {player_total}），即使要到大牌也不会爆，可以大胆要。"
+        else:
+            zh = f"你 {player_total} 点，庄家亮牌 {dealer_value}，庄家较强，不要牌很可能输。冒险要一张吧。"
+    elif action == 'stand':
+        if player_total >= 17:
+            zh = f"你已经 {player_total} 点了，再要牌爆牌风险很高，稳住别动。"
+        else:
+            zh = f"你 {player_total} 点，庄家亮牌 {dealer_value}。庄家点数小容易爆牌，让庄家先冒险。"
+    elif action == 'double':
+        zh = f"绝佳机会！你 {player_total} 点 vs 庄家 {dealer_value}，"
+        if player_total in (10, 11):
+            zh += "你很可能抽到 10 点的牌变成 20 或 21，值得加倍下注！"
+        else:
+            zh += "赢面大于输面，加倍押注赢更多。"
+    elif action == 'split':
+        zh = f"你有一对，分成两手牌各自打，胜率更高。"
+    elif action == 'surrender':
+        zh = f"你 {player_total} 点 vs 庄家 {dealer_value}，处境很不利。投降只损失一半赌注，是止损的明智选择。"
+    else:
+        zh = f"基于策略表推荐的最优操作。"
+
+    # Add MC insight if available
+    if mc_results and best_mc_action:
+        best = mc_results[best_mc_action]
+        zh += f"\n模拟 500 局：{action_label_zh(best_mc_action)}的胜率 {best['win_prob']}%。"
+
+    # Add card counting insight
+    if abs(true_count) >= 2:
+        if true_count >= 2:
+            zh += f"\n牌堆对你有利（剩余大牌多），可以更积极。"
+        else:
+            zh += f"\n牌堆对庄家有利（剩余小牌多），注意控制风险。"
+
+    # --- English ---
+    if action == 'hit':
+        if player_total <= 11:
+            en = f"Your hand is only {player_total} — no risk of busting, safe to hit."
+        elif has_soft:
+            en = f"You have a soft {player_total} (with an Ace). Even a high card won't bust you. Go ahead and hit."
+        else:
+            en = f"You have {player_total} vs dealer's {dealer_value}. The dealer is strong, so standing is likely a loss. Take a card."
+    elif action == 'stand':
+        if player_total >= 17:
+            en = f"You have {player_total} — hitting risks a bust. Stay put."
+        else:
+            en = f"You have {player_total} vs dealer's {dealer_value}. The dealer's low card means they're likely to bust. Let them take the risk."
+    elif action == 'double':
+        en = f"Great spot! You have {player_total} vs dealer's {dealer_value}. "
+        if player_total in (10, 11):
+            en += "You're likely to draw a 10-value card for 20 or 21. Double your bet!"
+        else:
+            en += "The odds are in your favor — double down to maximize winnings."
+    elif action == 'split':
+        en = f"You have a pair. Splitting into two hands gives you better odds overall."
+    elif action == 'surrender':
+        en = f"You have {player_total} vs dealer's {dealer_value} — a tough spot. Surrendering saves half your bet."
+    else:
+        en = f"Recommended by optimal strategy tables."
+
+    if mc_results and best_mc_action:
+        best = mc_results[best_mc_action]
+        en += f"\n500-hand simulation: {action_label_en(best_mc_action)} wins {best['win_prob']}% of the time."
+
+    if abs(true_count) >= 2:
+        if true_count >= 2:
+            en += f"\nThe remaining deck favors you (more high cards). Be aggressive."
+        else:
+            en += f"\nThe remaining deck favors the dealer (more low cards). Be cautious."
+
+    return zh, en
+
+
+def action_label_zh(action):
+    return {'hit': '要牌', 'stand': '停牌', 'double': '加倍', 'split': '分牌', 'surrender': '投降'}.get(action, action)
+
+
+def action_label_en(action):
+    return {'hit': 'Hit', 'stand': 'Stand', 'double': 'Double', 'split': 'Split', 'surrender': 'Surrender'}.get(action, action)
 
 
 # 游戏状态存储

@@ -84,7 +84,7 @@ class HybridTrainer:
         """阶段1: 数值训练"""
         try:
             # 导入数值训练模块
-            from numerical_train import numerical_blackjack_training
+            from train_numerical import numerical_blackjack_training
             
             print("📊 开始数值优化...")
             print(f"   训练规模: {episodes:,} episodes")
