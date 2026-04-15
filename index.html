@@ -660,9 +660,9 @@
                         ${{ playerChips }}
                     </v-chip>
 
-                    <v-chip class="mr-2 mr-md-3 mobile-hide" color="warning" outlined v-if="currentBet > 0">
+                    <v-chip class="mr-2 mr-md-3 mobile-hide" color="warning" outlined v-if="currentBet > 0 || activeBet > 0">
                         <v-icon left>mdi-target</v-icon>
-                        {{ t('下注', 'Bet') }}: ${{ currentBet }}
+                        {{ t('下注', 'Bet') }}: ${{ currentHand ? activeBet : currentBet }}
                     </v-chip>
 
                     <v-chip class="mr-2 mr-md-3 mobile-hide" color="info" outlined v-if="gameHistory.length > 0">
@@ -700,8 +700,8 @@
 
                 <!-- Mobile status bar: shows bet & win rate below app bar -->
                 <div class="mobile-status-bar">
-                    <v-chip small color="warning" outlined v-if="currentBet > 0">
-                        {{ t('下注', 'Bet') }}: ${{ currentBet }}
+                    <v-chip small color="warning" outlined v-if="currentBet > 0 || activeBet > 0">
+                        {{ t('下注', 'Bet') }}: ${{ currentHand ? activeBet : currentBet }}
                     </v-chip>
                     <v-chip small color="info" outlined v-if="gameHistory.length > 0">
                         {{ winRate }}% {{ t('胜率', 'Win Rate') }}
@@ -995,7 +995,7 @@
                                     </v-expansion-panels>
                                 </v-card-text>
                                 <v-card-actions class="pa-3 pa-md-4">
-                                    <v-btn color="success" :small="$vuetify.breakpoint.xs" @click="followAIAdvice">
+                                    <v-btn color="success" :small="$vuetify.breakpoint.xs" @click="followAIAdvice" :disabled="processing || gameOver">
                                         <v-icon left>mdi-check</v-icon>
                                         {{ t('采用', 'Follow') }}
                                     </v-btn>
@@ -1387,6 +1387,7 @@
                 showDealerTotal: false,
                 gameResult: null,
                 baseBet: 25,
+                activeBet: 0,
 
                 // 游戏历史
                 gameHistory: [],
@@ -1440,8 +1441,9 @@
                 canDouble() {
                     return this.currentHand &&
                            this.playerCards.length === 2 &&
-                           this.playerChips >= this.currentBet &&
-                           !this.gameOver;
+                           this.playerChips >= this.activeBet &&
+                           !this.gameOver &&
+                           !this.processing;
                 },
 
                 winRate() {
@@ -1878,6 +1880,7 @@
                     }
                     this.dealing = true;
                     this.baseBet = this.currentBet;
+                    this.activeBet = this.currentBet;
                     this.playerChips -= this.currentBet;
                     this.resetHand();
                     this.aiDecision = null;
@@ -1896,13 +1899,14 @@
                         }
                     } catch (error) {
                         console.error('Deal failed:', error);
-                        this.playerChips += this.currentBet;
+                        this.playerChips += this.activeBet;
                         this.showMessage(this.t('❌ 发牌失败', '❌ Deal failed'), 'error');
                     }
                     this.dealing = false;
                 },
 
                 async playerHit() {
+                    if (this.processing || this.gameOver) return;
                     this.processing = true;
                     if (!this.firstAction) this.firstAction = 'hit';
                     this.aiDecision = null;
@@ -1926,6 +1930,7 @@
                 },
 
                 async playerStand() {
+                    if (this.processing || this.gameOver) return;
                     this.processing = true;
                     if (!this.firstAction) this.firstAction = 'stand';
                     this.aiDecision = null;
@@ -1935,13 +1940,13 @@
                 },
 
                 async playerDouble() {
-                    if (!this.canDouble) return;
+                    if (!this.canDouble || this.processing) return;
                     this.processing = true;
                     if (!this.firstAction) this.firstAction = 'double';
                     this.aiDecision = null;
-                    this.playerChips -= this.currentBet;
-                    this.currentBet *= 2;
-                    this.showMessage(this.t(`💰 下注增加到 $${this.currentBet}`, `💰 Bet increased to $${this.currentBet}`), 'info');
+                    this.playerChips -= this.activeBet;
+                    this.activeBet *= 2;
+                    this.showMessage(this.t(`💰 下注增加到 $${this.activeBet}`, `💰 Bet increased to $${this.activeBet}`), 'info');
                     try {
                         await this.sleep(500);
                         const response = await axios.post(`/api/game/${this.gameId}/hit`);
@@ -1970,7 +1975,7 @@
                         const response = await axios.post(`/api/game/${this.gameId}/decision`, {
                             player_cards: this.playerCards,
                             dealer_upcard: this.dealerCards[0],
-                            current_bet: this.currentBet
+                            current_bet: this.activeBet
                         });
                         const dec = response.data.decision;
                         this.aiDecision = this.translateAIDecision(dec);
@@ -2054,7 +2059,7 @@
                 },
 
                 followAIAdvice() {
-                    if (!this.aiDecision) return;
+                    if (!this.aiDecision || this.processing || this.gameOver) return;
                     const action = this.aiDecision.action.toLowerCase();
                     if (action.includes('要牌') || action.includes('hit')) {
                         this.playerHit();
@@ -2101,22 +2106,22 @@
                         profit = 0;
                     } else if (isPlayerBJ) {
                         outcome = 'win';
-                        profit = Math.floor(this.currentBet * 1.5);
+                        profit = Math.floor(this.activeBet * 1.5);
                     } else if (this.playerTotal > 21) {
                         outcome = 'loss';
-                        profit = -this.currentBet;
+                        profit = -this.activeBet;
                     } else if (isDealerBJ) {
                         outcome = 'loss';
-                        profit = -this.currentBet;
+                        profit = -this.activeBet;
                     } else if (this.dealerTotal > 21) {
                         outcome = 'win';
-                        profit = this.currentBet;
+                        profit = this.activeBet;
                     } else if (this.playerTotal > this.dealerTotal) {
                         outcome = 'win';
-                        profit = this.currentBet;
+                        profit = this.activeBet;
                     } else if (this.playerTotal < this.dealerTotal) {
                         outcome = 'loss';
-                        profit = -this.currentBet;
+                        profit = -this.activeBet;
                     } else {
                         outcome = 'push';
                         profit = 0;
@@ -2125,10 +2130,10 @@
                     // Bet was deducted upfront; now settle
                     if (outcome === 'win') {
                         // Return original bet + winnings
-                        this.playerChips += this.currentBet + (isPlayerBJ ? Math.floor(this.currentBet * 1.5) : this.currentBet);
+                        this.playerChips += this.activeBet + (isPlayerBJ ? Math.floor(this.activeBet * 1.5) : this.activeBet);
                     } else if (outcome === 'push') {
                         // Return original bet
-                        this.playerChips += this.currentBet;
+                        this.playerChips += this.activeBet;
                     }
                     // Loss: bet already deducted, nothing to return
                     this.gameResult = { outcome, profit };
@@ -2136,7 +2141,7 @@
                     this.showDealerTotal = true;
                     this.gameHistory.push({
                         timestamp: new Date(),
-                        bet: this.currentBet,
+                        bet: this.activeBet,
                         playerTotal: this.playerTotal,
                         dealerTotal: this.dealerTotal,
                         result: outcome,
